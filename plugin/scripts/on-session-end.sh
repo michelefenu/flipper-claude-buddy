@@ -26,12 +26,19 @@ try:
 except Exception:
     print("Disconnected")
 ' 2>/dev/null)
+RAW_REASON=$(echo "$PAYLOAD" | python3 -c 'import json, sys; print(json.load(sys.stdin).get("reason") or "")' 2>/dev/null)
 
 # Decrement session reference counter
 COUNT=$(cat "$REFCOUNT_FILE" 2>/dev/null || echo 1)
 COUNT=$((COUNT - 1))
 if [ "$COUNT" -lt 0 ]; then COUNT=0; fi
 echo "$COUNT" > "$REFCOUNT_FILE"
+
+# /clear and /resume end this session but start a new one in the same Claude
+# process right away (its SessionStart re-increments the count): keep the bridge.
+# Killing it races that restart — SessionStart sees the dying bridge's socket and
+# skips starting a new one — and over BLE the restart would also have to re-scan.
+case "$RAW_REASON" in clear|resume) exit 0 ;; esac
 
 if [ -S "$SOCKET" ]; then
     python3 "${CLAUDE_PLUGIN_ROOT}/scripts/session-target.py" release_target "$SOCKET" >/dev/null 2>&1 || true

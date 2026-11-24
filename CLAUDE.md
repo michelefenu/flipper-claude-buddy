@@ -84,7 +84,7 @@ Claude Code hook scripts (plugin/scripts/)
 
 ### Bridge lifecycle (managed by hooks, not by hand)
 - `on-session-start.sh` creates a venv at `$CLAUDE_PLUGIN_DATA/venv` and installs the bridge into it. It hashes `pyproject.toml` + `bridge/*.py`; **when the hash changes, it reinstalls and kills/restarts a running daemon**. So bridge code edits take effect on the next session start.
-- Sessions are refcounted in `/tmp/claude-flipper-bridge.refcount`. `on-session-end.sh` stops the daemon when the count reaches 0.
+- Sessions are refcounted in `/tmp/claude-flipper-bridge.refcount`. `on-session-end.sh` stops the daemon when the count reaches 0, except when the reason is `clear` or `resume`. In those cases the same Claude process immediately starts a new session, so killing the bridge would race its SessionStart: the start hook sees the dying bridge's socket and skips the restart, which leaves the Flipper stuck on "Session End".
 - `session-target.py` registers the current terminal app/tab (`register_target`) so keystrokes go to the right window when several sessions are open.
 
 ### Permission round-trip
