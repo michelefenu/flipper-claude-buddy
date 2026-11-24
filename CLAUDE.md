@@ -19,7 +19,7 @@ cd flipper-app && ufbt launch
 
 New `.c` files must be added to `sources=[...]` in `flipper-app/application.fam`.
 
-**Exit the app on the Flipper (hold Back) before `ufbt launch`.** While the app runs over USB, `serial.c` switches to `usb_cdc_single` and takes the only CDC channel, so the Flipper CLI is gone. `ufbt launch` then hangs right after "Using flip_…". If an interrupted launch leaves the CLI unresponsive, unplugging USB isn't enough: reboot the Flipper (hold Left + Back).
+**Exit the app on the Flipper (hold Back) before `ufbt launch`.** While the app runs over USB, `serial.c` detaches the CLI (`cli_vcp_disable`) and takes the only CDC channel, so `ufbt launch` hangs right after "Using flip_…". The CLI comes back when the app exits (`cli_vcp_enable` in `usb_stop`). Don't remove that pairing: without it the CLI stays dead until a reboot. If an interrupted launch leaves the CLI unresponsive, unplugging USB isn't enough: reboot the Flipper (hold Left + Back).
 
 The fork's app id is `claudagotchi` (display name "Claudagotchi", data in `/ext/apps_data/claudagotchi/`), so it installs next to the upstream `claude_buddy` app without touching it.
 

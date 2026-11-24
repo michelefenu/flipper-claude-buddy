@@ -5,6 +5,7 @@
 #include <string.h>
 #include <furi_hal_usb.h>
 #include <furi_hal_usb_cdc.h>
+#include <cli/cli_vcp.h>
 
 #define CDC_CH       0
 #define RX_FLAG_DATA (1u << 0)
@@ -71,6 +72,10 @@ static void usb_start(Transport* t, TransportRxCallback cb, void* ctx) {
     ut->rx_pos       = 0;
 
     ut->usb_mode_prev = furi_hal_usb_get_config();
+    /* CDC channel 0 belongs to the CLI: detach it, or it never gets its callbacks back */
+    CliVcp* cli_vcp = furi_record_open(RECORD_CLI_VCP);
+    cli_vcp_disable(cli_vcp);
+    furi_record_close(RECORD_CLI_VCP);
     furi_hal_usb_unlock();
     furi_check(furi_hal_usb_set_config(&usb_cdc_single, NULL));
 
@@ -102,6 +107,9 @@ static void usb_stop(Transport* t) {
         furi_hal_usb_set_config(ut->usb_mode_prev, NULL);
         furi_delay_ms(250);
     }
+    CliVcp* cli_vcp = furi_record_open(RECORD_CLI_VCP);
+    cli_vcp_enable(cli_vcp);
+    furi_record_close(RECORD_CLI_VCP);
 }
 
 static void usb_send(Transport* t, const char* data, int len) {
