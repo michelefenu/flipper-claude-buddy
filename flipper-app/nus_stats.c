@@ -6,8 +6,8 @@
 #define TAG "NusStats"
 
 #define STATS_PARENT "/ext/apps_data"
-#define STATS_DIR    "/ext/apps_data/claude_buddy"
-#define STATS_FILE   "/ext/apps_data/claude_buddy/stats.bin"
+#define STATS_DIR    "/ext/apps_data/claudagotchi"
+#define STATS_FILE   "/ext/apps_data/claudagotchi/stats.bin"
 
 #define STATS_VERSION 1
 

@@ -9,8 +9,8 @@
  * directory when written through from a FAP, so the absolute path +
  * explicit mkdir is the reliable pattern. */
 #define SETTINGS_PARENT "/ext/apps_data"
-#define SETTINGS_DIR    "/ext/apps_data/claude_buddy"
-#define SETTINGS_FILE   "/ext/apps_data/claude_buddy/settings.bin"
+#define SETTINGS_DIR    "/ext/apps_data/claudagotchi"
+#define SETTINGS_FILE   "/ext/apps_data/claudagotchi/settings.bin"
 
 /* V1 was just [version, ble_mode].  V2 adds owner_name + device_name.
  * V1 readers continue to work when we read a V2 file (they only look

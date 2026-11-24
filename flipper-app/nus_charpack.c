@@ -6,7 +6,7 @@
 
 #define TAG "NusCharpack"
 
-#define PACKS_PARENT  "/ext/apps_data/claude_buddy/packs"
+#define PACKS_PARENT  "/ext/apps_data/claudagotchi/packs"
 #define PACK_NAME_MAX 32
 #define PACK_PATH_MAX 96
 
@@ -139,7 +139,7 @@ bool nus_charpack_begin(const char* name) {
 
     /* Ensure parent chain exists before the pack-specific dir. */
     storage_simply_mkdir(s_storage, "/ext/apps_data");
-    storage_simply_mkdir(s_storage, "/ext/apps_data/claude_buddy");
+    storage_simply_mkdir(s_storage, "/ext/apps_data/claudagotchi");
     storage_simply_mkdir(s_storage, PACKS_PARENT);
 
     snprintf(s_pack_dir, sizeof(s_pack_dir), "%s/%s", PACKS_PARENT, name);

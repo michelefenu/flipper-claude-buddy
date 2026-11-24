@@ -810,7 +810,7 @@ static int info_menu_step(int from, int delta) {
 }
 
 static const char* about_lines[] = {
-    "Claude Buddy",
+    "Claudagotchi",
     "v0.6",
     "Claude Code companion",
     "by jxw1102",

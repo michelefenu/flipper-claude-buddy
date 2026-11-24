@@ -19,6 +19,10 @@ cd flipper-app && ufbt launch
 
 New `.c` files must be added to `sources=[...]` in `flipper-app/application.fam`.
 
+**Exit the app on the Flipper (hold Back) before `ufbt launch`.** While the app runs over USB, `serial.c` switches to `usb_cdc_single` and takes the only CDC channel, so the Flipper CLI is gone. `ufbt launch` then hangs right after "Using flip_…". If an interrupted launch leaves the CLI unresponsive, unplugging USB isn't enough: reboot the Flipper (hold Left + Back).
+
+The fork's app id is `claudagotchi` (display name "Claudagotchi", data in `/ext/apps_data/claudagotchi/`), so it installs next to the upstream `claude_buddy` app without touching it.
+
 ### Host Bridge (Python ≥ 3.10)
 ```bash
 # Install (editable)
@@ -59,7 +63,7 @@ IPC actions handled in `Daemon` (`daemon.py`): `notify`, `display`, `claude_conn
 
 ## Architecture
 
-The Flipper app has two modes, persisted in `/ext/apps_data/claude_buddy/settings.bin` (`app_settings.c`, `BleMode`) and toggled from the on-device info menu:
+The Flipper app has two modes, persisted in `/ext/apps_data/claudagotchi/settings.bin` (`app_settings.c`, `BleMode`) and toggled from the on-device info menu:
 
 ```
 Bridge mode (BleModeBridge, default)            Desktop mode (BleModeDesktop)

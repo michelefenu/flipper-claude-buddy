@@ -33,7 +33,7 @@ def main():
             f"  claude plugin install flipper-claude-buddy@flipper-claude-buddy"
         )
 
-    parser = argparse.ArgumentParser(description="Flipper Claude Buddy bridge")
+    parser = argparse.ArgumentParser(description="Flipper Claudagotchi bridge")
     parser.add_argument(
         "--transport",
         choices=["auto", "usb", "ble"],

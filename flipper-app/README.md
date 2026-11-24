@@ -1,6 +1,6 @@
-# Claude Buddy
+# Claudagotchi
 
-Claude Buddy turns your Flipper Zero into a physical remote and status display for Claude — with haptic, audio, and LED feedback for every significant event, and buttons that replace the keyboard for the actions you use most.
+Claudagotchi turns your Flipper Zero into a physical remote and status display for Claude — with haptic, audio, and LED feedback for every significant event, and buttons that replace the keyboard for the actions you use most.
 
 ## Two modes
 
@@ -17,7 +17,7 @@ Both modes give you the same LED / sound / vibration feedback for working, succe
 
 **Setup**
 
-1. Install and launch Claude Buddy on your Flipper.
+1. Install and launch Claudagotchi on your Flipper.
 2. Install the companion Claude Code plugin:
 
    (bash)

@@ -1,4 +1,6 @@
-# Flipper Claude Code Buddy
+# Claudagotchi
+
+Personal fork of [jxw1102/flipper-claude-buddy](https://github.com/jxw1102/flipper-claude-buddy), adapted to my own Claude Code workflow.
 
 Turn your Flipper Zero into a physical companion for Claude Code. Get tactile feedback for every AI action — feel the difference between a completed task, an error, and an approval request — and control Claude with real buttons instead of typing.
 
@@ -14,7 +16,7 @@ Interrupt a runaway task, submit a prompt, trigger voice dictation, or open the 
 
 ## Two modes
 
-Claude Buddy runs in one of two modes, switchable from the on-device menu (long-press **Right → MENU**, then the top row):
+Claudagotchi runs in one of two modes, switchable from the on-device menu (long-press **Right → MENU**, then the top row):
 
 - **Claude Code (USB/BLE)** (default) — talks to Claude Code in the terminal via the companion plugin and Python host bridge. USB or BLE. Full keystroke forwarding: Enter, Esc, voice dictation, slash-command menu, etc.
 - **Claude Desktop (BLE)** — talks directly to the Claude Desktop app over BLE using Anthropic's [Hardware Buddy](https://github.com/anthropics/claude-desktop-buddy) protocol (Nordic UART Service). No plugin, no host bridge. The Flipper shows live status from Claude Desktop (running sessions, token counts, recent transcript) and lets you Allow / Deny permission prompts right from the device.
@@ -46,29 +48,31 @@ Once paired, Claude Desktop auto-reconnects whenever both sides are online.
 
 ## Setup
 
-### 1. Install the Flipper app
+### 1. Build and install the Flipper app
 
-Download `claude_buddy.fap` from the [latest release](../../releases/latest) and copy it to your Flipper Zero:
-
-- **Via qFlipper:** SD Card → `apps/USB/` → drag and drop
-- **Via SD card:** copy to `apps/USB/` directly
-
-### 2. Install the Claude Code plugin
-
-> **Requires Python 3.10 or higher.** If you're on an older system Python, upgrade first (e.g. via [pyenv](https://github.com/pyenv/pyenv) or [python.org](https://www.python.org/downloads/)), then reinstall the plugin.
+Requires [ufbt](https://github.com/flipperdevices/flipperzero-ufbt) and an SDK matching the Flipper's firmware (`ufbt update` = latest official release).
 
 ```bash
-claude plugin marketplace add jxw1102/flipper-claude-buddy
-claude plugin install flipper-claude-buddy@flipper-claude-buddy
+uv tool install ufbt      # or: pip3 install ufbt
+ufbt update
+cd flipper-app && ufbt launch   # Flipper on USB, qFlipper closed
 ```
 
-Claude Code will ask for your connection preference (`auto`, `usb`, or `ble`). Leave everything else empty for auto-detect.
+The app installs to `/ext/apps/Bluetooth/claudagotchi.fap` and shows up as **Apps → Bluetooth → Claudagotchi**. It keeps its data in `/ext/apps_data/claudagotchi/`, so it can sit next to the original Claude Buddy.
 
-The plugin starts automatically with every Claude Code session and stops when you close it.
+### 2. Run Claude Code with the plugin
 
-### 3. Launch Claude Buddy on your Flipper
+> **Requires Python 3.10 or higher.**
 
-Go to **Applications → USB → Claude Buddy**. You'll hear the startup fanfare when the connection is established.
+```bash
+claude --plugin-dir /path/to/this/repo/plugin
+```
+
+The plugin starts the bridge with every Claude Code session and stops it when the last one ends. Bridge code changes are picked up at the next session start. (The root `.claude-plugin/marketplace.json` still points to upstream, so don't install via `claude plugin marketplace add` unless you change it.)
+
+### 3. Launch Claudagotchi on your Flipper
+
+Open **Apps → Bluetooth → Claudagotchi**. You'll hear the startup fanfare when the connection is established.
 
 ## Connection
 

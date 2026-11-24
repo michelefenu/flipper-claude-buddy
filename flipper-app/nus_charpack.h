@@ -4,7 +4,7 @@
  * Anthropic's reference firmware uses this to stream GIFs + a manifest
  * for the on-device pet rendering.  Flipper has no GIF renderer, but we
  * still accept the transfer and persist files under
- *   /ext/apps_data/claude_buddy/packs/<pack>/
+ *   /ext/apps_data/claudagotchi/packs/<pack>/
  * so the desktop sees a complete handshake (refusing char_begin makes
  * the desktop surface an error to the user).
  *

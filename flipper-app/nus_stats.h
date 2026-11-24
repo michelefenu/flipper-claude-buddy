@@ -5,7 +5,7 @@
  * Claude desktop app polls every ~2s, and drive the celebrate / heart
  * transient states in nus_state.c.
  *
- * File layout at /ext/apps_data/claude_buddy/stats.bin:
+ * File layout at /ext/apps_data/claudagotchi/stats.bin:
  *   byte 0:     version (1)
  *   bytes 1..:  packed NusStats struct (little-endian, matches native ARM)
  */

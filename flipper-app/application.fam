@@ -1,6 +1,6 @@
 App(
-    appid="claude_buddy",
-    name="Claude Buddy",
+    appid="claudagotchi",
+    name="Claudagotchi",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="claude_buddy_app",
     requires=["gui", "notification", "bt", "storage"],

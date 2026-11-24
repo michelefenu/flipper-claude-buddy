@@ -12,7 +12,7 @@ if ! command -v ufbt &>/dev/null; then
     exit 1
 fi
 
-echo "Building Claude Buddy for Flipper Zero..."
+echo "Building Claudagotchi for Flipper Zero..."
 ufbt build
 
 if [ "${1:-}" = "--flash" ]; then

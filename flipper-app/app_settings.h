@@ -1,7 +1,7 @@
 /**
  * Per-app persisted settings.
  *
- * Stored at /ext/apps_data/claude_buddy/settings.bin (1 byte — version + mode).
+ * Stored at /ext/apps_data/claudagotchi/settings.bin (1 byte — version + mode).
  * Accessed from the GUI thread only.
  */
 
