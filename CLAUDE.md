@@ -17,7 +17,9 @@ cd flipper-app && ufbt launch
 ./scripts/build-flipper.sh --flash   # build + flash
 ```
 
-### Host Bridge (Python)
+New `.c` files must be added to `sources=[...]` in `flipper-app/application.fam`.
+
+### Host Bridge (Python ≥ 3.10)
 ```bash
 # Install (editable)
 cd plugin/host-bridge && pip3 install -e .
@@ -28,63 +30,90 @@ python3 -m bridge
 # Run with explicit transport
 python3 -m bridge --transport ble   # BLE only
 python3 -m bridge --transport usb   # USB only
-
-# Key environment overrides
-FLIPPER_BT_NAME="Flipper"          # BLE device name prefix
-FLIPPER_TRANSPORT=ble              # force BLE
-FLIPPER_LOG_LEVEL=debug            # verbose logs
 ```
 
-### Testing IPC
+Environment overrides (all read in `bridge/config.py` / `__main__.py`):
+```bash
+FLIPPER_TRANSPORT=auto|usb|ble      # default auto: USB first, then BLE
+FLIPPER_SERIAL_PORT=/dev/cu.usbmodemXXX
+FLIPPER_BT_NAME="Flipper"           # name fallback; primary BLE scan filter is service UUID 0x3082
+FLIPPER_BT_SCAN_TIMEOUT=10
+FLIPPER_LOG_LEVEL=debug
+FLIPPER_BRIDGE_SOCKET=/tmp/claude-flipper-bridge.sock
+FLIPPER_DICTATION_BACKEND=macos|custom|none   # + FLIPPER_DICTATION_{START,STOP,CHECK}_CMD for custom
+```
+Plugin `userConfig` (`serial_port`, `transport`, `bluetoothName`) is forwarded to these env vars by `on-session-start.sh`.
+
+### Testing
+There is no test suite or linter. CI (`.github/workflows/build-fap.yml`) only builds the FAP. Verify changes by building, flashing, and watching the bridge log. To poke the bridge's IPC socket by hand:
 ```bash
 echo '{"action":"notify","sound":"success","vibro":true,"text":"Test","subtext":""}' \
   | nc -U /tmp/claude-flipper-bridge.sock
 ```
+IPC actions handled in `Daemon` (`daemon.py`): `notify`, `display`, `claude_connect`, `claude_disconnect`, `register_target`, `release_target`, `permission_request`.
+
+### Debug scripts (`scripts/`)
+- `flipper-log.py` — tail the Flipper's serial CLI log (`--debug` enables debug logging on device)
+- `scan-nus.py` — BLE scan showing what Claude Desktop's Hardware Buddy picker sees
+- `refresh-name.py` — force macOS to refresh its cached BLE device name
 
 ## Architecture
 
+The Flipper app has two modes, persisted in `/ext/apps_data/claude_buddy/settings.bin` (`app_settings.c`, `BleMode`) and toggled from the on-device info menu:
+
 ```
-Flipper Zero (C app)
-  ↕ USB CDC serial  OR  BLE serial
-Host Bridge (Python daemon, macOS)
-  ↕ Unix socket  /tmp/claude-flipper-bridge.sock
-Claude Code hook scripts (plugin/ or .claude/)
+Bridge mode (BleModeBridge, default)            Desktop mode (BleModeDesktop)
+Flipper Zero (C app)                            Flipper Zero (C app)
+  ↕ USB CDC  OR  BLE serial (custom UUIDs)        ↕ BLE Nordic UART Service (advertises "Claude")
+Host Bridge (Python daemon)                     Claude Desktop app (Anthropic Hardware Buddy protocol)
+  ↕ Unix socket /tmp/claude-flipper-bridge.sock   — no plugin, no bridge
+Claude Code hook scripts (plugin/scripts/)
 ```
 
-The system has three components:
+1. **`flipper-app/`**: the Flipper Zero FAP (C). Handles button input and audio/haptic/LED feedback. At startup and on mode toggle, `claude_buddy.c` picks the transport: USB if the Flipper is on USB power *and* in Bridge mode, otherwise BLE (`transport_bt.c` for Bridge, `transport_nus.c` for Desktop). All transports implement the vtable in `transport.h`. The `nus_*.c` files belong to Desktop mode only.
 
-1. **`flipper-app/`** — Flipper Zero FAP (C). Handles button input and audio/haptic feedback. Auto-selects USB or BLE transport at startup based on USB power state.
+2. **`plugin/host-bridge/`**: the Python asyncio daemon. Bridges serial ↔ Unix socket and translates Flipper button events into keystrokes for the terminal (`input.py`: osascript on macOS, xdotool on Linux) and dictation (`voice.py`).
 
-2. **`plugin/host-bridge/`** — Python asyncio daemon. Bridges serial ↔ Unix socket. Manages BLE/USB connection with auto-reconnect. Serves a Unix socket that hook scripts connect to.
+3. **`plugin/`**: the Claude Code plugin. `hooks/hooks.json` maps each lifecycle event to a script in `scripts/`. The plugin is published through the root `.claude-plugin/marketplace.json` (a git-subdir pointing at `plugin/`).
 
-3. **`plugin/`** — Claude Code plugin (self-contained, shareable). Hook scripts that translate Claude Code lifecycle events (notifications, permissions, tool use) into socket messages.
+### Bridge lifecycle (managed by hooks, not by hand)
+- `on-session-start.sh` creates a venv at `$CLAUDE_PLUGIN_DATA/venv` and installs the bridge into it. It hashes `pyproject.toml` + `bridge/*.py`; **when the hash changes, it reinstalls and kills/restarts a running daemon**. So bridge code edits take effect on the next session start.
+- Sessions are refcounted in `/tmp/claude-flipper-bridge.refcount`. `on-session-end.sh` stops the daemon when the count reaches 0.
+- `session-target.py` registers the current terminal app/tab (`register_target`) so keystrokes go to the right window when several sessions are open.
+
+### Permission round-trip
+`on-permission-request.py` sends `permission_request` over the socket and **blocks** while the bridge sends `perm` to the Flipper and waits up to 60s for `perm_resp`. On `no_flipper` / `timeout` / `busy` / `ask`, the hook falls back to Claude Code's normal permission dialog. Only one permission request can be in flight at a time.
 
 ## Threading Model — Critical
 
 ### Flipper App
-- **BLE/serial RX callback** runs on a worker thread. It must NOT call any UI functions or `transport_send`.
-- The callback queues parsed `ProtocolMessage` into a `FuriMessageQueue` and signals the GUI thread via `view_dispatcher_send_custom_event`.
+- **RX callbacks of every transport** (USB, BT, NUS) run on a worker thread. They must NOT call any UI functions or `transport_send`.
+- The shared callback `on_serial_data` in `claude_buddy.c` parses the line (`protocol_parse`, or `nus_protocol_parse` in Desktop mode), queues it into a `FuriMessageQueue`, and signals the GUI thread via `view_dispatcher_send_custom_event`.
 - **GUI thread** (the Furi event loop) drains the queue and calls `transport_send` safely.
-- Calling `ble_profile_serial_tx` from inside `bt_serial_event_cb` deadlocks on Momentum firmware — always defer TX to the GUI thread.
+- Calling `ble_profile_serial_tx` from inside `bt_serial_event_cb` deadlocks on Momentum firmware. Always defer TX to the GUI thread.
 
 ### Host Bridge
 - Single asyncio event loop. All transport I/O, IPC, and ping tasks are async coroutines.
 - `serial_conn.py` runs a reconnect loop that re-establishes the transport on disconnect.
-- `transport_bt.py`: `readline()` must handle disconnect without blocking — checks `_closed` flag before and after `_rx_event.clear()`.
+- `transport_bt.py`: `readline()` must handle disconnect without blocking. It checks the `_closed` flag before and after `_rx_event.clear()`.
 
-## Protocol
+## Protocol (Bridge mode)
 
 JSON lines (`\n`-terminated) over serial (USB or BLE):
 ```json
 {"v": 1, "t": "<type>", "d": {...}}
 ```
 
-**Host → Flipper:** `ping`, `notify`, `state`, `status`, `menu`, `perm`
-**Flipper → Host:** `hello`, `pong`, `enter`, `esc`, `voice`, `down`, `cmd`, `perm_resp`
+**Host → Flipper** (`bridge/protocol.py`): `ping`, `notify`, `state`, `status`, `menu`, `perm`
+**Flipper → Host** (`protocol_build_*` in `protocol.h`): `hello`, `pong`, `perm_resp`, `cmd`, plus one message per key: `enter`, `esc`, `down`, `voice`, `yes`, `interrupt`, `backspace`, `space_down`/`space_up`, `pgup`/`pgdown`, `ctrl_o`, `ctrl_e`, `shift_tab`
 
-The Flipper sends `hello` on the first received `ping` (from the GUI thread), not at BLE connect time. This is because the host's CCCD write (enabling notifications) hasn't happened yet when the connection status callback fires.
+Adding a button event touches all three layers: a builder in `protocol.c/.h`, the sender in `ui.c`/`claude_buddy.c`, and a `msg_type` branch in `Daemon` (`daemon.py`) that calls the input backend.
 
-## BLE Transport Details
+The Flipper sends `hello` on the first received `ping` (from the GUI thread), not at BLE connect time. This is because the host's CCCD write (enabling notifications) hasn't happened yet when the connection status callback fires. `hello_sent` is reset on every transport change and reconnect.
+
+Desktop mode uses Anthropic's Hardware Buddy wire protocol instead (`nus_protocol.c`). It is unrelated to the JSON protocol above.
+
+## BLE Transport Details (Bridge mode)
 
 - RX (Flipper→host, notify): `19ed82ae-ed21-4c9d-4145-228e61fe0000`
 - TX (host→Flipper, write): `19ed82ae-ed21-4c9d-4145-228e62fe0000`
@@ -95,24 +124,26 @@ The Flipper sends `hello` on the first received `ping` (from the GUI thread), no
 
 | File | Purpose |
 |------|---------|
-| `flipper-app/claude_buddy.c` | App entry point, GUI event loop, message dispatch |
-| `flipper-app/transport_bt.c` | BLE transport — RX callback, connection state |
-| `flipper-app/ui.c` | Display rendering, button input handlers |
-| `flipper-app/protocol.c` | JSON parse/build for all message types |
-| `plugin/host-bridge/bridge/daemon.py` | Main event loop, message routing |
+| `flipper-app/claude_buddy.c` | App entry point, GUI event loop, transport selection, message dispatch |
+| `flipper-app/transport_bt.c` / `serial.c` / `transport_nus.c` | BLE (Bridge) / USB CDC / BLE NUS (Desktop) transports |
+| `flipper-app/ui.c` | Display rendering, button input handlers, About page version |
+| `flipper-app/protocol.c` | JSON parse/build for Bridge-mode messages |
+| `flipper-app/nus_*.c` | Desktop mode: NUS GATT profile, Hardware Buddy protocol, state machine, transcript, stats, character packs |
+| `plugin/host-bridge/bridge/daemon.py` | Main event loop, Flipper message routing, IPC handlers, command-menu discovery |
+| `plugin/host-bridge/bridge/input.py` | Keystroke backends (osascript / xdotool / no-op) |
 | `plugin/host-bridge/bridge/transport_bt.py` | BLE transport (bleak), readline, write |
 | `plugin/host-bridge/bridge/serial_conn.py` | Reconnect loop, disconnect detection |
-| `plugin/host-bridge/bridge/config.py` | All tunables (timeouts, UUIDs, chunk sizes) |
-| `plugin/scripts/` | Hook scripts for each Claude Code lifecycle event |
+| `plugin/host-bridge/bridge/config.py` | All tunables (timeouts, UUIDs, chunk sizes, env vars) |
+| `plugin/hooks/hooks.json` + `plugin/scripts/` | Hook wiring and one script per Claude Code lifecycle event |
 
-## Runtime Files (macOS)
+## Runtime Files
 - Socket: `/tmp/claude-flipper-bridge.sock`
 - PID: `/tmp/claude-flipper-bridge.pid`
 - Log: `/tmp/claude-flipper-bridge.log`
 - Session refcount: `/tmp/claude-flipper-bridge.refcount`
-- Turn stats: `/tmp/claude-flipper-turn-stats.json` — tool usage counts written by `on-post-tool-use.py`, read by `on-stop.sh`
-- Skip-stop flag: `/tmp/claude-flipper-skip-stop.flag` — set by hook Bash commands that write directly to the socket, prevents `on-stop.sh` from double-notifying
-- BT name cache: `$PLUGIN_DATA/bt_name` — auto-detected Bluetooth device name saved after first `hello`; used across sessions to skip re-scanning
+- Turn stats: `/tmp/claude-flipper-turn-stats.json`: tool usage counts written by `on-post-tool-use.py`, read by `on-stop.sh`
+- Skip-stop flag: `/tmp/claude-flipper-skip-stop.flag`: set by hook Bash commands that write directly to the socket, so `on-stop.sh` doesn't notify twice
+- Plugin data (`$CLAUDE_PLUGIN_DATA`, fallback `/tmp/flipper-claude-buddy`): `venv/` and `bt_name`, the Bluetooth name auto-detected from the first `hello` and reused across sessions to skip re-scanning
 
 To inspect bridge activity: `tail -f /tmp/claude-flipper-bridge.log`
 
@@ -120,32 +151,32 @@ To inspect bridge activity: `tail -f /tmp/claude-flipper-bridge.log`
 
 | Feature | macOS | Linux |
 |---------|-------|-------|
-| USB transport | `/dev/cu.usbmodem*` | `/dev/ttyACM*` (auto-detected) |
-| BLE transport | ✓ | not yet supported |
-| Keystroke forwarding | AppleScript (`osascript`) | `xdotool` (X11 only; install via `apt install xdotool`) |
+| USB transport | `/dev/cu.usbmodem*` | `/dev/ttyACM*` (auto-detected; may need `dialout` group) |
+| BLE transport | ✓ | ✓ via BlueZ (bleak) |
+| Keystroke forwarding | AppleScript (`osascript`, needs Accessibility permission for the terminal) | `xdotool` (X11 only; install via `apt install xdotool`) |
 | Wayland keystroke | ✗ | not yet supported (`ydotool` needed) |
 | Dictation | macOS native (`FLIPPER_DICTATION_BACKEND=macos`) | disabled by default; use `FLIPPER_DICTATION_BACKEND=custom` |
 
 On Linux, `WINDOWID` (set by VTE-based terminals like gnome-terminal and kitty) is used by `xdotool` to focus the correct window. If `WINDOWID` is not set, keystrokes go to the active window.
 
-The bridge daemon, IPC socket, and all hook scripts are otherwise platform-agnostic.
-
 ## Command Menu System
 
-The Flipper's button menu is populated from two optional text files (project overrides user):
-1. `~/.claude/flipper-commands.txt` — user-level shortcuts
-2. `$PROJECT_DIR/.claude/flipper-commands.txt` — project-level shortcuts
+`Daemon._load_commands` (`daemon.py`) builds the Flipper's slash-command menu by merging these sources:
+1. Built-in Claude Code commands (`BUILTIN_COMMANDS`)
+2. `commands/*.md` and `skills/*/SKILL.md` under both `~/.claude/` and `$FLIPPER_PROJECT_DIR/.claude/`
+3. Commands and skills of enabled plugins (`enabledPlugins` in settings.json, resolved under `~/.claude/plugins/`)
+4. Legacy `~/.claude/flipper-commands.txt` and `$FLIPPER_PROJECT_DIR/.claude/flipper-commands.txt`: one command per line, `#` comments
 
-Each line is a display label and command separated by a delimiter. The bridge also auto-discovers skill shortcuts from `.claude/commands/`. Commands are sent to the Flipper as a pipe-delimited `menu` message; the Flipper stores abbreviations in `_cmd_map` and expands the selection back to the host.
+Items are truncated to 26 chars and sent as a `|`-joined `menu` message. The bridge keeps `_cmd_map` (truncated → full command) and expands the `cmd` the Flipper sends back.
 
 ## Releasing a New Version
 
-1. **Commit any uncommitted changes first** — the version bump should be its own clean commit.
-2. **`flipper-app/CHANGELOG.md`** — add a new `## vX.Y` section at the top, summarizing commits since the previous version.
-3. **`flipper-app/application.fam`** — update `fap_version`
-4. **`flipper-app/ui.c`** — update version string on the About page
-5. **`plugin/.claude-plugin/plugin.json`** — update `version`
-6. **`plugin/host-bridge/pyproject.toml`** — update `version`
+1. **Commit any uncommitted changes first.** The version bump should be its own clean commit.
+2. **`flipper-app/CHANGELOG.md`**: add a new `## vX.Y` section at the top, summarizing commits since the previous version.
+3. **`flipper-app/application.fam`**: update `fap_version`
+4. **`flipper-app/ui.c`**: update the version string on the About page
+5. **`plugin/.claude-plugin/plugin.json`**: update `version`
+6. **`plugin/host-bridge/pyproject.toml`**: update `version`
 7. Commit, push, then tag:
    ```bash
    git tag X.Y
