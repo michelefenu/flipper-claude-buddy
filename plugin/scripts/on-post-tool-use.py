@@ -42,17 +42,17 @@ def tool_detail(tool_name: str, hook_input: dict) -> str:
     tool_input = hook_input.get("tool_input", {})
     if tool_name == "Bash":
         cmd = tool_input.get("command", "")
-        return cmd[:21] if cmd else ""
+        return cmd[:63] if cmd else ""
     if tool_name in ("Edit", "Write", "Read"):
         path = tool_input.get("file_path", "")
-        return os.path.basename(path)[:21] if path else ""
+        return os.path.basename(path)[:63] if path else ""
     if tool_name in ("WebFetch", "WebSearch"):
         val = tool_input.get("url") or tool_input.get("query", "")
         for prefix in ("https://", "http://"):
             if val.startswith(prefix):
                 val = val[len(prefix):]
                 break
-        return val[:21]
+        return val[:63]
     return ""
 
 

@@ -36,7 +36,7 @@ Once paired, Claude Desktop auto-reconnects whenever both sides are online.
 | UP | Up arrow (previous prompt in history) |
 | UP (hold) | Hold Space for voice input |
 | LEFT | Interrupt Claude (Esc) |
-| LEFT (hold) | Send Ctrl+C |
+| LEFT (hold) | Type `/clear` (press OK to run it) |
 | RIGHT | Open slash command menu |
 | RIGHT (hold) | Open menu |
 | OK | Submit Enter (⏎) |

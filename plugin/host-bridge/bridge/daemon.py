@@ -190,7 +190,7 @@ class Daemon:
 
         elif action == "display":
             text = request.get("text", "")[:21]
-            sub = request.get("subtext", "")[:21]
+            sub = request.get("subtext", "")
             await self.serial.send(protocol.status_msg(text, sub))
             return {"status": "ok"}
 

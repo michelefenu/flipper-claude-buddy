@@ -40,6 +40,7 @@ typedef enum {
     UiEventShiftTab,     // toggle plan mode (Shift+Tab)
     UiEventToggleBleMode, // BLE profile toggled between Bridge and Desktop
     UiEventUp,           // short-press Up: Up arrow (previous prompt in history)
+    UiEventClear,        // long-press Left: type "/clear" (user confirms with OK)
 } UiEventType;
 
 typedef enum {
@@ -62,7 +63,7 @@ typedef struct {
      * in ui.c; Bridge mode shows it on a single line and relies on the
      * host to keep messages short. */
     char text[64];    // primary status line
-    char subtext[22]; // secondary info line (empty = hide; Bridge only)
+    char subtext[64]; // secondary info, wrapped over up to 3 lines (empty = hide; Bridge only)
     bool connected;         // serial/flipper connected
     bool claude_connected;  // claude code session active
     bool muted;             // sound mute active (shown as indicator in header)

@@ -100,6 +100,7 @@ Claude Code hook scripts (plugin/scripts/)
 - Single asyncio event loop. All transport I/O, IPC, and ping tasks are async coroutines.
 - `serial_conn.py` runs a reconnect loop that re-establishes the transport on disconnect.
 - `transport_bt.py`: `readline()` must handle disconnect without blocking. It checks the `_closed` flag before and after `_rx_event.clear()`.
+- `claude_ipc.py` reads each request with a single `read(65536)`, not until EOF: shell hooks use `nc`, which doesn't half-close the socket. Large payloads can arrive split and fail to parse, so keep hook payloads small. Hooks cap subtexts at 63 chars (`[:63]`), matching `SUBTEXT_MAX` in `protocol.py` and the Flipper's 64-byte field, which the status screen wraps over up to 3 lines.
 
 ## Protocol (Bridge mode)
 
@@ -109,7 +110,7 @@ JSON lines (`\n`-terminated) over serial (USB or BLE):
 ```
 
 **Host → Flipper** (`bridge/protocol.py`): `ping`, `notify`, `state`, `status`, `menu`, `perm`
-**Flipper → Host** (`protocol_build_*` in `protocol.h`): `hello`, `pong`, `perm_resp`, `cmd`, plus one message per key: `enter`, `esc`, `up`, `down`, `voice` (macOS dictation toggle; no button sends it since Up-tap became `up`), `yes`, `interrupt`, `backspace`, `space_down`/`space_up`, `pgup`/`pgdown`, `ctrl_o`, `ctrl_e`, `shift_tab`
+**Flipper → Host** (`protocol_build_*` in `protocol.h`): `hello`, `pong`, `perm_resp`, `cmd`, plus one message per key: `enter`, `esc`, `up`, `down`, `voice` (macOS dictation toggle; no button sends it since Up-tap became `up`), `yes`, `interrupt` (Ctrl+C; unbound since Left-hold became `/clear`), `backspace`, `space_down`/`space_up`, `pgup`/`pgdown`, `ctrl_o`, `ctrl_e`, `shift_tab`
 
 Adding a button event touches all three layers: a builder in `protocol.c/.h`, the sender in `ui.c`/`claude_buddy.c`, and a `msg_type` branch in `Daemon` (`daemon.py`) that calls the input backend. New key names must be added to `_key_code` in `input.py`: on macOS an unknown name silently falls back to Return (key code 36).
 

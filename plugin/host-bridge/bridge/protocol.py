@@ -30,10 +30,14 @@ def decode(line: bytes) -> dict | None:
     return None
 
 
+# Flipper wraps the subtext over up to 3 lines; its field buffer is 64 bytes.
+SUBTEXT_MAX = 63
+
+
 def notify_msg(sound: str, vibro: bool = True, text: str = "", subtext: str = "") -> bytes:
     d: dict = {"sound": sound, "vibro": vibro, "text": text}
     if subtext:
-        d["sub"] = subtext[:21]
+        d["sub"] = subtext[:SUBTEXT_MAX]
     return encode("notify", d)
 
 
@@ -44,7 +48,7 @@ def state_msg(claude_connected: bool = False) -> bytes:
 def status_msg(line1: str, line2: str = "") -> bytes:
     d: dict = {"line1": line1[:21]}
     if line2:
-        d["line2"] = line2[:21]
+        d["line2"] = line2[:SUBTEXT_MAX]
     return encode("status", d)
 
 

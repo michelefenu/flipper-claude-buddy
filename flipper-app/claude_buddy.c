@@ -696,6 +696,13 @@ static void on_ui_event(UiEventType event, const char* data, void* context) {
         transport_send(app->transport, app->tx_buf, len);
         break;
 
+    case UiEventClear:
+        // Same path as a command-menu pick: the bridge types "/clear " without Enter
+        app_notify(app, SoundCmd);
+        len = protocol_build_cmd(app->tx_buf, sizeof(app->tx_buf), "/clear");
+        transport_send(app->transport, app->tx_buf, len);
+        break;
+
     case UiEventInterrupt:
         // Long-press Left: send Ctrl+C to host (always audible, bypasses mute)
         notify_play(app->notifications, SoundAlert, LedStateOff);

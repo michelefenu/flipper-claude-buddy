@@ -562,13 +562,31 @@ static void status_draw(Canvas* canvas, void* model) {
         bool has_sub = m->subtext[0] != '\0';
         bool show_hint = !has_sub && m->connected && m->text[0] == '\0';
 
-        canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(
-            canvas, 77, (has_sub || show_hint) ? 25 : 31, AlignCenter, AlignCenter, main_text);
         if(has_sub) {
+            /* Subtext (bash command, file, error…) wraps over up to 3 lines
+             * in the 96 px column right of the character; the whole block
+             * stays vertically centered so short messages look as before. */
+            char sub_lines[3][32];
             canvas_set_font(canvas, FontSecondary);
-            canvas_draw_str_aligned(canvas, 77, 37, AlignCenter, AlignCenter, m->subtext);
-        } else if(show_hint) {
+            int nsub = wrap_text(canvas, m->subtext, 96, sub_lines, 3);
+            const int main_h = 11;
+            const int sub_h = 9;
+            int top = (HDR_H + FTR_Y) / 2 - (main_h + nsub * sub_h) / 2;
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str_aligned(
+                canvas, 77, top + main_h / 2, AlignCenter, AlignCenter, main_text);
+            canvas_set_font(canvas, FontSecondary);
+            for(int i = 0; i < nsub; i++) {
+                canvas_draw_str_aligned(
+                    canvas, 77, top + main_h + i * sub_h + sub_h / 2, AlignCenter,
+                    AlignCenter, sub_lines[i]);
+            }
+        } else {
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str_aligned(
+                canvas, 77, show_hint ? 25 : 31, AlignCenter, AlignCenter, main_text);
+        }
+        if(show_hint) {
             canvas_set_font(canvas, FontSecondary);
             // "Hold [►] for menu" with inline icon
             int hw = (int)canvas_string_width(canvas, "Hold ");
@@ -616,7 +634,7 @@ static bool status_input(InputEvent* event, void* context) {
         return true;
     }
     if(event->key == InputKeyLeft && event->type == InputTypeLong) {
-        if(ui->event_callback) ui->event_callback(UiEventInterrupt, NULL, ui->event_context);
+        if(ui->event_callback) ui->event_callback(UiEventClear, NULL, ui->event_context);
         return true;
     }
     if(event->key == InputKeyUp && event->type == InputTypeShort) {
@@ -833,7 +851,7 @@ static const HelpEntry help_entries_bridge[] = {
     {HelpBtnText,  "Tap",       "Hold"},
     {HelpBtnUp,    "History",   "Voice"},
     {HelpBtnDown,  "Down",      "Mute"},
-    {HelpBtnLeft,  "Esc",       "Ctrl+C"},
+    {HelpBtnLeft,  "Esc",       "/clear"},
     {HelpBtnRight, "Cmd menu",  "Menu"},
     {HelpBtnOk,    "Enter",     "Yes+Enter"},
     {HelpBtnBack,  "Backspace", "Exit app"},

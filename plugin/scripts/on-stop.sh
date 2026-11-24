@@ -40,7 +40,7 @@ try:
     stats = json.load(open('$STATS'))
     parts = sorted(stats.items(), key=lambda x: -x[1])
     summary = ' '.join(f'{v} {k}' for k, v in parts)
-    print(summary[:21] if summary else '')
+    print(summary[:63] if summary else '')
 except Exception:
     print('')
 " 2>/dev/null)

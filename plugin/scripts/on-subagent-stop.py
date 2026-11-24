@@ -30,7 +30,7 @@ def main():
 
     agent_type = hook_input.get("agent_type", "Agent")
     last_msg = hook_input.get("last_assistant_message", "").strip()
-    subtext = last_msg[:21] if last_msg else "stopped"
+    subtext = last_msg[:63] if last_msg else "stopped"
 
     try:
         # alert: single E5 blip + cyan flash, does NOT clear the working indicator

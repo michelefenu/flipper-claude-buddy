@@ -33,19 +33,19 @@ def extract_subtext(hook_input: dict) -> str:
             if line.startswith("Exit code"):
                 continue
             if line:
-                return line[:21]
+                return line[:63]
 
     # For file tools, show the basename
     if tool_name in ("Edit", "Write", "Read"):
         path = tool_input.get("file_path", "")
         if path:
-            return os.path.basename(path)[:21]
+            return os.path.basename(path)[:63]
 
     # Generic: first non-empty line of error
     for line in error.splitlines():
         line = line.strip()
         if line:
-            return line[:21]
+            return line[:63]
 
     return "Failed"
 

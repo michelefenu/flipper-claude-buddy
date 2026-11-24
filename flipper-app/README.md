@@ -37,7 +37,7 @@ Both modes give you the same LED / sound / vibration feedback for working, succe
 | UP | Up arrow (previous prompt in history) |
 | UP (hold) | Hold Space for voice input |
 | LEFT | Interrupt Claude (Esc) |
-| LEFT (hold) | Send Ctrl+C |
+| LEFT (hold) | Type `/clear` (press OK to run it) |
 | RIGHT | Open slash command menu |
 | RIGHT (hold) | Open info menu |
 | OK | Submit Enter (⏎) |

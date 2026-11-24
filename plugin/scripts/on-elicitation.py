@@ -24,11 +24,11 @@ def extract_subtext(hook_input: dict) -> str:
     # Prefer MCP server name if present
     mcp = hook_input.get("mcp_server_name", "")
     if mcp:
-        return mcp[:21]
+        return mcp[:63]
     # Fall back to first line of message
     message = hook_input.get("message", "")
     first_line = message.split("\n", 1)[0].strip()
-    return first_line[:21] if first_line else "Input needed"
+    return first_line[:63] if first_line else "Input needed"
 
 
 def main():
