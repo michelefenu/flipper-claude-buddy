@@ -39,6 +39,7 @@ typedef enum {
     UiEventCtrlE,        // transcript mode: Ctrl+E
     UiEventShiftTab,     // toggle plan mode (Shift+Tab)
     UiEventToggleBleMode, // BLE profile toggled between Bridge and Desktop
+    UiEventUp,           // short-press Up: Up arrow (previous prompt in history)
 } UiEventType;
 
 typedef enum {

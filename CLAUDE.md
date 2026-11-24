@@ -109,9 +109,9 @@ JSON lines (`\n`-terminated) over serial (USB or BLE):
 ```
 
 **Host → Flipper** (`bridge/protocol.py`): `ping`, `notify`, `state`, `status`, `menu`, `perm`
-**Flipper → Host** (`protocol_build_*` in `protocol.h`): `hello`, `pong`, `perm_resp`, `cmd`, plus one message per key: `enter`, `esc`, `down`, `voice`, `yes`, `interrupt`, `backspace`, `space_down`/`space_up`, `pgup`/`pgdown`, `ctrl_o`, `ctrl_e`, `shift_tab`
+**Flipper → Host** (`protocol_build_*` in `protocol.h`): `hello`, `pong`, `perm_resp`, `cmd`, plus one message per key: `enter`, `esc`, `up`, `down`, `voice` (macOS dictation toggle; no button sends it since Up-tap became `up`), `yes`, `interrupt`, `backspace`, `space_down`/`space_up`, `pgup`/`pgdown`, `ctrl_o`, `ctrl_e`, `shift_tab`
 
-Adding a button event touches all three layers: a builder in `protocol.c/.h`, the sender in `ui.c`/`claude_buddy.c`, and a `msg_type` branch in `Daemon` (`daemon.py`) that calls the input backend.
+Adding a button event touches all three layers: a builder in `protocol.c/.h`, the sender in `ui.c`/`claude_buddy.c`, and a `msg_type` branch in `Daemon` (`daemon.py`) that calls the input backend. New key names must be added to `_key_code` in `input.py`: on macOS an unknown name silently falls back to Return (key code 36).
 
 The Flipper sends `hello` on the first received `ping` (from the GUI thread), not at BLE connect time. This is because the host's CCCD write (enabling notifications) hasn't happened yet when the connection status callback fires. `hello_sent` is reset on every transport change and reconnect.
 

@@ -33,7 +33,7 @@ Once paired, Claude Desktop auto-reconnects whenever both sides are online.
 
 | Button | Action |
 |--------|--------|
-| UP | Start / stop voice dictation |
+| UP | Up arrow (previous prompt in history) |
 | UP (hold) | Hold Space for voice input |
 | LEFT | Interrupt Claude (Esc) |
 | LEFT (hold) | Send Ctrl+C |

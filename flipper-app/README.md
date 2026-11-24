@@ -34,7 +34,7 @@ Both modes give you the same LED / sound / vibration feedback for working, succe
 
 | Button | Action |
 |--------|--------|
-| UP | Start / stop voice dictation |
+| UP | Up arrow (previous prompt in history) |
 | UP (hold) | Hold Space for voice input |
 | LEFT | Interrupt Claude (Esc) |
 | LEFT (hold) | Send Ctrl+C |

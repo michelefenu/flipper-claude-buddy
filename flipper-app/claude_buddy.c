@@ -690,6 +690,12 @@ static void on_ui_event(UiEventType event, const char* data, void* context) {
         transport_send(app->transport, app->tx_buf, len);
         break;
 
+    case UiEventUp:
+        app_notify(app, SoundLedFlash);
+        len = protocol_build_up(app->tx_buf, sizeof(app->tx_buf));
+        transport_send(app->transport, app->tx_buf, len);
+        break;
+
     case UiEventInterrupt:
         // Long-press Left: send Ctrl+C to host (always audible, bypasses mute)
         notify_play(app->notifications, SoundAlert, LedStateOff);

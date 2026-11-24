@@ -620,7 +620,7 @@ static bool status_input(InputEvent* event, void* context) {
         return true;
     }
     if(event->key == InputKeyUp && event->type == InputTypeShort) {
-        if(ui->event_callback) ui->event_callback(UiEventVoice, NULL, ui->event_context);
+        if(ui->event_callback) ui->event_callback(UiEventUp, NULL, ui->event_context);
         return true;
     }
     if(event->key == InputKeyUp && event->type == InputTypeLong) {
@@ -822,39 +822,32 @@ static const char* about_lines[] = {
 
 typedef struct {
     uint8_t button;
-    bool hold;
-    const char* desc;
+    const char* tap;
+    const char* hold; // NULL on HelpBtnText = full-width plain text line
 } HelpEntry;
 
-/* Bridge mode: most buttons forward keystrokes to the host terminal via
- * the Python bridge.  Up is voice dictation, OK sends Enter, Left sends
- * Esc, etc.  HelpBtnText entries render as plain-text lines (no icon)
- * so we can mix a title and install instructions with the button rows. */
+/* Bridge mode: one row per button, tap action and hold action side by side.
+ * A HelpBtnText row with both columns set is the column header; with only
+ * `tap` set it renders as a plain-text line (install instructions). */
 static const HelpEntry help_entries_bridge[] = {
-    {HelpBtnText,  false, "Button actions:"},
-    {HelpBtnUp,    false, "Voice dictation"},
-    {HelpBtnUp,    true,  "Hold-to-talk"},
-    {HelpBtnLeft,  false, "Interrupt (Esc)"},
-    {HelpBtnLeft,  true,  "Ctrl+C"},
-    {HelpBtnRight, false, "Cmd menu"},
-    {HelpBtnRight, true,  "Menu"},
-    {HelpBtnOk,    false, "Enter"},
-    {HelpBtnOk,    true,  "Yes + Enter"},
-    {HelpBtnDown,  false, "Down arrow"},
-    {HelpBtnDown,  true,  "Mute"},
-    {HelpBtnBack,  false, "Backspace"},
-    {HelpBtnBack,  true,  "Exit app"},
-    {HelpBtnText,  false, ""},
-    {HelpBtnText,  false, "Install plugin:"},
-    {HelpBtnText,  false, "```"},
-    {HelpBtnText,  false, "claude plugin marketplace"},
-    {HelpBtnText,  false, "add jxw1102/flipper-"},
-    {HelpBtnText,  false, "claude-buddy"},
-    {HelpBtnText,  false, ""},
-    {HelpBtnText,  false, "claude plugin install"},
-    {HelpBtnText,  false, "flipper-claude-buddy@"},
-    {HelpBtnText,  false, "flipper-claude-buddy"},
-    {HelpBtnText,  false, "```"},
+    {HelpBtnText,  "Tap",       "Hold"},
+    {HelpBtnUp,    "History",   "Voice"},
+    {HelpBtnDown,  "Down",      "Mute"},
+    {HelpBtnLeft,  "Esc",       "Ctrl+C"},
+    {HelpBtnRight, "Cmd menu",  "Menu"},
+    {HelpBtnOk,    "Enter",     "Yes+Enter"},
+    {HelpBtnBack,  "Backspace", "Exit app"},
+    {HelpBtnText,  "",                          NULL},
+    {HelpBtnText,  "Install plugin:",           NULL},
+    {HelpBtnText,  "```",                       NULL},
+    {HelpBtnText,  "claude plugin marketplace", NULL},
+    {HelpBtnText,  "add jxw1102/flipper-",      NULL},
+    {HelpBtnText,  "claude-buddy",              NULL},
+    {HelpBtnText,  "",                          NULL},
+    {HelpBtnText,  "claude plugin install",     NULL},
+    {HelpBtnText,  "flipper-claude-buddy@",     NULL},
+    {HelpBtnText,  "flipper-claude-buddy",      NULL},
+    {HelpBtnText,  "```",                       NULL},
 };
 
 /* Desktop (NUS) mode: no keystroke path, so a button-mapping list is
@@ -877,8 +870,8 @@ static const char* help_text_desktop[] = {
 
 #define HELP_VISIBLE    4
 #define HELP_LINE_H     10
-#define HELP_COLON_X    31
-#define HELP_DESC_X     36
+#define HELP_TAP_X      12
+#define HELP_HOLD_X     66
 
 // Small inline button icon at (x, baseline_y) — vertically centered with text
 static void draw_help_icon(Canvas* canvas, int x, int y, uint8_t button) {
@@ -974,13 +967,12 @@ static void info_draw(Canvas* canvas, void* model) {
                 canvas_draw_str(canvas, 2, y, help_text_desktop[idx]);
             } else {
                 const HelpEntry* e = &help_entries_bridge[idx];
-                if(e->button == HelpBtnText) {
-                    canvas_draw_str(canvas, 2, y, e->desc);
+                if(e->button == HelpBtnText && !e->hold) {
+                    canvas_draw_str(canvas, 2, y, e->tap);
                 } else {
-                    draw_help_icon(canvas, 2, y, e->button);
-                    if(e->hold) canvas_draw_str(canvas, 9, y, "Hold");
-                    canvas_draw_str(canvas, HELP_COLON_X, y, ":");
-                    canvas_draw_str(canvas, HELP_DESC_X, y, e->desc);
+                    if(e->button != HelpBtnText) draw_help_icon(canvas, 2, y, e->button);
+                    canvas_draw_str(canvas, HELP_TAP_X, y, e->tap);
+                    canvas_draw_str(canvas, HELP_HOLD_X, y, e->hold);
                 }
             }
             y += HELP_LINE_H;
