@@ -40,7 +40,7 @@ Once paired, Claude Desktop auto-reconnects whenever both sides are online.
 | RIGHT | Open slash command menu |
 | RIGHT (hold) | Open menu |
 | OK | Submit Enter (⏎) |
-| OK (hold) | Type "yes" and submit |
+| OK (hold) | Tab (accept Claude Code's prompt suggestion) |
 | DOWN | Send Down arrow (↓) |
 | DOWN (hold) | Toggle mute |
 | BACK | Send Backspace (⌫) |

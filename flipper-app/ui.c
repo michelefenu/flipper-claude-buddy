@@ -626,7 +626,7 @@ static bool status_input(InputEvent* event, void* context) {
         return true;
     }
     if(event->key == InputKeyOk && event->type == InputTypeLong) {
-        if(ui->event_callback) ui->event_callback(UiEventYes, NULL, ui->event_context);
+        if(ui->event_callback) ui->event_callback(UiEventTab, NULL, ui->event_context);
         return true;
     }
     if(event->key == InputKeyLeft && event->type == InputTypeShort) {
@@ -853,7 +853,7 @@ static const HelpEntry help_entries_bridge[] = {
     {HelpBtnDown,  "Down",      "Mute"},
     {HelpBtnLeft,  "Esc",       "/clear"},
     {HelpBtnRight, "Cmd menu",  "Menu"},
-    {HelpBtnOk,    "Enter",     "Yes+Enter"},
+    {HelpBtnOk,    "Enter",     "Tab"},
     {HelpBtnBack,  "Backspace", "Exit app"},
     {HelpBtnText,  "",                          NULL},
     {HelpBtnText,  "Install plugin:",           NULL},

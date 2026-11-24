@@ -79,6 +79,7 @@ int protocol_build_space_down(char* buf, int buf_size);
 int protocol_build_space_up(char* buf, int buf_size);
 int protocol_build_down(char* buf, int buf_size);
 int protocol_build_up(char* buf, int buf_size);
+int protocol_build_tab(char* buf, int buf_size);
 int protocol_build_pong(char* buf, int buf_size);
 int protocol_build_perm_resp(char* buf, int buf_size, bool allow, bool always, bool esc);
 int protocol_build_interrupt(char* buf, int buf_size);

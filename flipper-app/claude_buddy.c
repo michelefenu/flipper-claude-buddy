@@ -696,6 +696,12 @@ static void on_ui_event(UiEventType event, const char* data, void* context) {
         transport_send(app->transport, app->tx_buf, len);
         break;
 
+    case UiEventTab:
+        app_notify(app, SoundLedFlash);
+        len = protocol_build_tab(app->tx_buf, sizeof(app->tx_buf));
+        transport_send(app->transport, app->tx_buf, len);
+        break;
+
     case UiEventClear:
         // Same path as a command-menu pick: the bridge types "/clear " without Enter
         app_notify(app, SoundCmd);

@@ -104,6 +104,9 @@ class Daemon:
         elif msg_type == "up":
             await self._send_keystroke("up")
 
+        elif msg_type == "tab":
+            await self._send_keystroke("tab")
+
         elif msg_type == "esc":
             await self._send_keystroke("escape")
             if self._dictating:

@@ -41,6 +41,7 @@ typedef enum {
     UiEventToggleBleMode, // BLE profile toggled between Bridge and Desktop
     UiEventUp,           // short-press Up: Up arrow (previous prompt in history)
     UiEventClear,        // long-press Left: type "/clear" (user confirms with OK)
+    UiEventTab,          // long-press Ok: Tab (accept Claude Code's prompt suggestion)
 } UiEventType;
 
 typedef enum {

@@ -21,6 +21,8 @@ New `.c` files must be added to `sources=[...]` in `flipper-app/application.fam`
 
 **Exit the app on the Flipper (hold Back) before `ufbt launch`.** While the app runs over USB, `serial.c` detaches the CLI (`cli_vcp_disable`) and takes the only CDC channel, so `ufbt launch` hangs right after "Using flip_…". The CLI comes back when the app exits (`cli_vcp_enable` in `usb_stop`). Don't remove that pairing: without it the CLI stays dead until a reboot. If an interrupted launch leaves the CLI unresponsive, unplugging USB isn't enough: reboot the Flipper (hold Left + Back).
 
+**Also stop the bridge first** (close every Claude Code session running the plugin). Once the app exits, the bridge's USB reconnect loop opens the last `/dev/cu.usbmodem*` port (`transport_usb.py`), which is now the CLI. `ufbt launch` then fails with "multiple access on port".
+
 The fork's app id is `claudagotchi` (display name "Claudagotchi", data in `/ext/apps_data/claudagotchi/`), so it installs next to the upstream `claude_buddy` app without touching it.
 
 ### Host Bridge (Python ≥ 3.10)
@@ -88,6 +90,8 @@ Claude Code hook scripts (plugin/scripts/)
 ### Permission round-trip
 `on-permission-request.py` sends `permission_request` over the socket and **blocks** while the bridge sends `perm` to the Flipper and waits up to 60s for `perm_resp`. On `no_flipper` / `timeout` / `busy` / `ask`, the hook falls back to Claude Code's normal permission dialog. Only one permission request can be in flight at a time.
 
+`AskUserQuestion` also fires `PermissionRequest`, but it's a multiple-choice picker, not Allow/Deny. The hook skips the Flipper permission screen for it, sends an alert `notify` with the first question's text, and exits without a decision so Claude Code shows its own picker. That picker is driven from the Flipper's main screen: Up/Down are arrows, OK is Enter, Left is Esc.
+
 ## Threading Model — Critical
 
 ### Flipper App
@@ -110,7 +114,7 @@ JSON lines (`\n`-terminated) over serial (USB or BLE):
 ```
 
 **Host → Flipper** (`bridge/protocol.py`): `ping`, `notify`, `state`, `status`, `menu`, `perm`
-**Flipper → Host** (`protocol_build_*` in `protocol.h`): `hello`, `pong`, `perm_resp`, `cmd`, plus one message per key: `enter`, `esc`, `up`, `down`, `voice` (macOS dictation toggle; no button sends it since Up-tap became `up`), `yes`, `interrupt` (Ctrl+C; unbound since Left-hold became `/clear`), `backspace`, `space_down`/`space_up`, `pgup`/`pgdown`, `ctrl_o`, `ctrl_e`, `shift_tab`
+**Flipper → Host** (`protocol_build_*` in `protocol.h`): `hello`, `pong`, `perm_resp`, `cmd`, plus one message per key: `enter`, `esc`, `up`, `down`, `voice` (macOS dictation toggle; no button sends it since Up-tap became `up`), `tab`, `yes` (types "yes" + Enter; unbound since OK-hold became `tab`), `interrupt` (Ctrl+C; unbound since Left-hold became `/clear`), `backspace`, `space_down`/`space_up`, `pgup`/`pgdown`, `ctrl_o`, `ctrl_e`, `shift_tab`
 
 Adding a button event touches all three layers: a builder in `protocol.c/.h`, the sender in `ui.c`/`claude_buddy.c`, and a `msg_type` branch in `Daemon` (`daemon.py`) that calls the input backend. New key names must be added to `_key_code` in `input.py`: on macOS an unknown name silently falls back to Return (key code 36).
 

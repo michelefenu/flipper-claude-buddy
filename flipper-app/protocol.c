@@ -158,6 +158,10 @@ int protocol_build_up(char* buf, int buf_size) {
     return build_simple(buf, buf_size, "up");
 }
 
+int protocol_build_tab(char* buf, int buf_size) {
+    return build_simple(buf, buf_size, "tab");
+}
+
 int protocol_build_voice(char* buf, int buf_size) {
     return build_simple(buf, buf_size, "voice");
 }

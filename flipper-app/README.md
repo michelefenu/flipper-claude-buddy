@@ -41,7 +41,7 @@ Both modes give you the same LED / sound / vibration feedback for working, succe
 | RIGHT | Open slash command menu |
 | RIGHT (hold) | Open info menu |
 | OK | Submit Enter (⏎) |
-| OK (hold) | Type "yes" and submit |
+| OK (hold) | Tab (accept Claude Code's prompt suggestion) |
 | DOWN | Send Down arrow (↓) |
 | DOWN (hold) | Toggle mute |
 | BACK | Send Backspace (⌫) |

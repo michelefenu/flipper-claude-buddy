@@ -65,6 +65,27 @@ def main():
     tool_name_raw = hook_input.get("tool_name", "Unknown")
     tool_input = hook_input.get("tool_input", {})
 
+    # Multiple-choice questions aren't Allow/Deny: let Claude Code show its own
+    # picker and just alert the Flipper. On the main screen Up/Down/OK already
+    # send arrows/Enter, which is how the picker is driven.
+    if tool_name_raw == "AskUserQuestion":
+        questions = tool_input.get("questions") or [{}]
+        text = "Question" if len(questions) == 1 else f"{len(questions)} questions"
+        try:
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            s.settimeout(5)
+            s.connect(SOCKET_PATH)
+            s.sendall(json.dumps({
+                "action": "notify", "sound": "alert", "vibro": True, "text": text,
+                "subtext": questions[0].get("question", "")[:63],
+            }).encode())
+            s.shutdown(socket.SHUT_WR)
+            s.recv(4096)
+            s.close()
+        except Exception:
+            pass
+        sys.exit(0)  # no decision: Claude Code shows the question as usual
+
     # For tool_name like mcp__atlassian__searchJiraIssuesUsingJql, display as mcp_atlassian
     if "__" in tool_name_raw:
         parts = tool_name_raw.split("__")

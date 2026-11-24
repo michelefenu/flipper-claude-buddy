@@ -2,17 +2,37 @@
 
 import json
 import time
+import unicodedata
 import uuid
 
 def make_id() -> str:
     return uuid.uuid4().hex[:8]
 
 
+_ASCII_MAP = str.maketrans({
+    "—": "-", "–": "-",          # em/en dash
+    "“": '"', "”": '"',          # curly double quotes
+    "‘": "'", "’": "'",          # curly single quotes
+    "…": "...", "→": "->", "•": "*",
+})
+
+
+def to_ascii(text: str) -> str:
+    """Flipper fonts are ASCII-only and its JSON parser doesn't decode \\uXXXX:
+    strip accents, map common symbols, drop anything else (emoji, CJK...).
+
+    >>> to_ascii("perché — “sì” … ✅")
+    'perche - "si" ... '
+    """
+    decomposed = unicodedata.normalize("NFKD", text.translate(_ASCII_MAP))
+    return decomposed.encode("ascii", "ignore").decode()
+
+
 def encode(msg_type: str, data: dict | None = None) -> bytes:
     msg = {
         "v": 1,
         "t": msg_type,
-        "d": data or {},
+        "d": {k: to_ascii(v) if isinstance(v, str) else v for k, v in (data or {}).items()},
     }
     return json.dumps(msg, separators=(",", ":")).encode() + b"\n"
 
