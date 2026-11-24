@@ -60,15 +60,24 @@ cd flipper-app && ufbt launch   # Flipper on USB, qFlipper closed
 
 The app installs to `/ext/apps/Bluetooth/claudagotchi.fap` and shows up as **Apps → Bluetooth → Claudagotchi**. It keeps its data in `/ext/apps_data/claudagotchi/`, so it can sit next to the original Claude Buddy.
 
-### 2. Run Claude Code with the plugin
+### 2. Install the Claude Code plugin
 
 > **Requires Python 3.10 or higher.**
+
+**Everyday use** — install from this fork's marketplace; it then loads in every session:
+
+```bash
+claude plugin marketplace add michelefenu/flipper-claude-buddy
+claude plugin install flipper-claude-buddy@flipper-claude-buddy
+```
+
+**Development** — load the plugin straight from a checkout, so local edits apply without pushing (don't also have the marketplace version enabled, or the hooks run twice):
 
 ```bash
 claude --plugin-dir /path/to/this/repo/plugin
 ```
 
-The plugin starts the bridge with every Claude Code session and stops it when the last one ends. Bridge code changes are picked up at the next session start. (The root `.claude-plugin/marketplace.json` still points to upstream, so don't install via `claude plugin marketplace add` unless you change it.)
+The plugin starts the bridge with every Claude Code session and stops it when the last one ends. Bridge code changes are picked up at the next session start.
 
 ### 3. Launch Claudagotchi on your Flipper
 
