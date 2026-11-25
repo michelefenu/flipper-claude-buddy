@@ -27,7 +27,13 @@ class SerialConnection:
     # ── Connection ─────────────────────────────────────────────────
 
     async def connect(self) -> bool:
-        ok = await self._transport.connect()
+        try:
+            ok = await self._transport.connect()
+        except Exception as e:
+            # e.g. BlueZ "Operation already in progress" after suspend: letting it
+            # escape kills reconnect_loop and the bridge never retries.
+            log.error("Connect error: %s", e)
+            return False
         if ok:
             self.connected = True
         return ok
