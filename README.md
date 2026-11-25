@@ -89,6 +89,19 @@ Connects over USB (plug-and-play) or Bluetooth LE — whichever is available. US
 
 **macOS — First-time Bluetooth pairing:** on first BLE connection macOS will pair with the Flipper. Accept the pairing prompt on both sides. If the connection fails after a firmware flash or factory reset, remove the Flipper from System Settings → Bluetooth and let it re-pair.
 
+**Linux — First-time Bluetooth pairing:** BlueZ does not pair on its own (the adapter is usually `Pairable: no`), so the bridge log shows `failed to discover services, device disconnected` on every attempt. Pair once by hand with the app open on the Flipper and the bridge stopped or on USB, since its BLE retries cut the pairing short. The Flipper shows a 6-digit PIN that you type on the PC, so run `bluetoothctl` interactively: a one-shot `bluetoothctl pair <MAC>` has no agent to ask for the PIN and fails with `AuthenticationFailed`.
+```
+$ bluetoothctl
+[bluetooth]# pairable on
+[bluetooth]# agent KeyboardDisplay
+[bluetooth]# default-agent
+[bluetooth]# pair 80:E1:XX:XX:XX:XX     # MAC from the bridge log line "BT: found Flipper …"
+[agent] Enter passkey (number in 0-999999): <PIN shown on the Flipper>
+[bluetooth]# trust 80:E1:XX:XX:XX:XX
+[bluetooth]# pairable off
+```
+After a firmware flash or factory reset, `bluetoothctl remove <MAC>` and pair again.
+
 **macOS — Bluetooth permission:** Terminal (or your terminal app) must have Bluetooth access. Grant it in System Settings → Privacy & Security → Bluetooth.
 
 **macOS — Accessibility permission (required for keystroke forwarding):** Flipper button presses are delivered to your terminal via AppleScript (`osascript`), which needs Accessibility permission. Grant it in System Settings → Privacy & Security → Accessibility and toggle on your terminal app (Terminal, iTerm2, WezTerm, Alacritty, Ghostty, etc.). Without this, the Flipper will see Claude's status (e.g. "thinking...") but pressing OK, LEFT, RIGHT, etc. will do nothing. If your terminal doesn't prompt automatically, add it manually. The bridge log will show `osascript is not allowed to send keystrokes` when this permission is missing. Voice dictation (UP) also depends on this.

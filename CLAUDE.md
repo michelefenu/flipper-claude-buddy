@@ -103,6 +103,7 @@ Claude Code hook scripts (plugin/scripts/)
 ### Host Bridge
 - Single asyncio event loop. All transport I/O, IPC, and ping tasks are async coroutines.
 - `serial_conn.py` runs a reconnect loop that re-establishes the transport on disconnect.
+- `transport_usb.py`: `connect()` sends a ping and accepts the port only if the app answers `hello`/`pong` within `USB_HANDSHAKE_TIMEOUT`. Otherwise the port is the Flipper CLI (app closed or on BLE) and `AutoTransport` falls back to BLE. The reply line is handed to the first `readline()` so the daemon still sees the `hello`.
 - `transport_bt.py`: `readline()` must handle disconnect without blocking. It checks the `_closed` flag before and after `_rx_event.clear()`.
 - `claude_ipc.py` reads each request with a single `read(65536)`, not until EOF: shell hooks use `nc`, which doesn't half-close the socket. Large payloads can arrive split and fail to parse, so keep hook payloads small. Hooks cap subtexts at 63 chars (`[:63]`), matching `SUBTEXT_MAX` in `protocol.py` and the Flipper's 64-byte field, which the status screen wraps over up to 3 lines.
 

@@ -12,6 +12,10 @@ SERIAL_BAUD = 115200
 
 SERIAL_PORT = os.environ.get("FLIPPER_SERIAL_PORT", "")
 
+# How long the app has to answer the USB handshake ping before the port is
+# taken for the Flipper CLI and the bridge falls back to BLE.
+USB_HANDSHAKE_TIMEOUT = 2.0
+
 PING_INTERVAL = 5.0
 
 DICTATION_POLL_INTERVAL = 2.0
