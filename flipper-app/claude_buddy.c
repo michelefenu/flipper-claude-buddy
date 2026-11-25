@@ -74,7 +74,7 @@ typedef struct {
     FuriMessageQueue* serial_queue;
     FuriTimer* usb_poll_timer; // non-NULL only in USB mode; polls for cable removal
     bool hello_sent;
-    bool muted;      // suppress all sounds (toggled by long-press Down)
+    SoundLevel sound_level; // persisted; cycled by long-press Down
     bool is_working;    // blue LED active — alerts should flash cyan then return to blue
     bool dictating;     // true while dictation is active (set by voice_start / cleared by voice_stop)
     ProtocolMessage rx_msg_buf;     // Buffer for parsing on transport thread
@@ -98,10 +98,20 @@ typedef struct {
     FuriTimer* nus_tick_timer; /* 1 Hz while in Desktop mode; drives sleep detection */
 } App;
 
-// Play a sound unless muted. Interrupt/mute toggle always plays regardless.
+// Whether the sound level lets `snd` play. LED-only sequences make no noise,
+// so every level lets them through. Interrupt and the level cue bypass this.
+static bool sound_allowed(App* app, SoundType snd, bool important) {
+    if(snd == SoundLedWorking || snd == SoundLedOff || snd == SoundLedCompact ||
+       snd == SoundLedFlash || snd == SoundVoiceStartLed || snd == SoundVoiceStopQuiet)
+        return true;
+    return app->sound_level == SoundLevelAll ||
+           (important && app->sound_level == SoundLevelImportant);
+}
+
+// Button feedback: plays only at SoundLevelAll.
 static void app_notify(App* app, SoundType snd) {
     if(!app || !app->notifications) return;
-    if(!app->muted) notify_play(app->notifications, snd,
+    if(sound_allowed(app, snd, false)) notify_play(app->notifications, snd,
         app->is_working ? LedStateWorking : LedStateOff);
 }
 
@@ -377,7 +387,8 @@ static void process_message(App* app, ProtocolMessage* msg) {
             app->is_working = false;
         }
 
-        if(!app->muted) notify_play(app->notifications, snd,
+        // Hooks send vibro:true for what needs attention; that is the "important" flag.
+        if(sound_allowed(app, snd, msg->vibro)) notify_play(app->notifications, snd,
             app->is_working ? LedStateWorking : LedStateOff);
 
         if(snd == SoundVoiceStart || snd == SoundVoiceStartLed) {
@@ -458,7 +469,7 @@ static void process_message(App* app, ProtocolMessage* msg) {
             if(msg->perm_id[0]) {
                 strlcpy(app->last_perm_id, msg->perm_id, sizeof(app->last_perm_id));
             }
-        } else {
+        } else if(sound_allowed(app, SoundPerm, true)) {
             notify_play(app->notifications, SoundPerm, LedStateOff);
         }
         /* Desktop wire protocol has no "always" decision — hide the
@@ -652,7 +663,8 @@ static bool on_custom_event(void* context, uint32_t event) {
         ui_set_transport_mode(app->ui, true);
         transport_start(app->transport, on_serial_data, app);
 
-        notify_play(app->notifications, SoundConnect, LedStateOff);
+        if(sound_allowed(app, SoundConnect, true))
+            notify_play(app->notifications, SoundConnect, LedStateOff);
         return true;
     }
     return false;
@@ -718,11 +730,15 @@ static void on_ui_event(UiEventType event, const char* data, void* context) {
         transport_send(app->transport, app->tx_buf, len);
         break;
 
-    case UiEventToggleMute:
-        // Long-press Down: toggle mute (the toggle sound itself always plays)
-        app->muted = !app->muted;
-        ui_set_muted(app->ui, app->muted);
-        notify_play(app->notifications, app->muted ? SoundMuteOn : SoundMuteOff, LedStateOff);
+    case UiEventCycleSound:
+        // Long-press Down: All → Important → Off (the cue itself always plays)
+        app->sound_level = (app->sound_level + 1) % (SoundLevelOff + 1);
+        app_settings_set_sound_level(app->sound_level);
+        ui_set_sound_level(app->ui, app->sound_level);
+        notify_play(
+            app->notifications,
+            app->sound_level == SoundLevelAll ? SoundMuteOff : SoundMuteOn,
+            LedStateOff);
         break;
 
     case UiEventVoice:
@@ -905,6 +921,8 @@ int32_t claude_buddy_app(void* p) {
     /* UI */
     app->ui = ui_alloc(gui);
     ui_set_event_callback(app->ui, on_ui_event, app);
+    app->sound_level = app_settings_get_sound_level();
+    ui_set_sound_level(app->ui, app->sound_level);
 
     /* Route custom events from serial queue to the GUI thread */
     view_dispatcher_set_event_callback_context(app->ui->view_dispatcher, app);
@@ -942,14 +960,16 @@ int32_t claude_buddy_app(void* p) {
     char buf[128];
     int len = protocol_build_hello(buf, sizeof(buf));
     transport_send(app->transport, buf, len);
-    notify_play(app->notifications, SoundConnect, LedStateOff);
+    if(sound_allowed(app, SoundConnect, true))
+        notify_play(app->notifications, SoundConnect, LedStateOff);
     ui_show_status(app->ui, NULL, true);
 
     /* Run event loop (blocks until ui_stop) */
     ui_run(app->ui);
 
     /* Cleanup */
-    notify_play(app->notifications, SoundDisconnect, LedStateOff);
+    if(sound_allowed(app, SoundDisconnect, true))
+        notify_play(app->notifications, SoundDisconnect, LedStateOff);
     furi_delay_ms(500);
 
     if(app->usb_poll_timer) {

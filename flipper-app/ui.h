@@ -30,7 +30,7 @@ typedef enum {
     UiEventPermEsc,
     UiEventBackspace,    // short-press Back: send backspace
     UiEventInterrupt,    // long-press Left: send Ctrl+C interrupt
-    UiEventToggleMute,   // long-press Down: toggle sound mute
+    UiEventCycleSound,   // long-press Down: cycle sound level (all / important / off)
     UiEventYes,          // long-press Ok: type "yes" + enter
     UiEventOpenInfo,     // long-press Right: open info menu
     UiEventPageUp,       // transcript mode: page up
@@ -67,7 +67,7 @@ typedef struct {
     char subtext[64]; // secondary info, wrapped over up to 3 lines (empty = hide; Bridge only)
     bool connected;         // serial/flipper connected
     bool claude_connected;  // claude code session active
-    bool muted;             // sound mute active (shown as indicator in header)
+    uint8_t sound_level;    // SoundLevel (shown as indicator in header)
     bool space_hold_active; // true while Up long-press is held for hold-space input
     uint8_t pose;           // CharacterPose
     uint8_t anim_frame;     // animation counter (incremented by timer)
@@ -137,7 +137,7 @@ void ui_update_menu(UiState* ui, const char* pipe_delimited);
 void ui_show_permission(UiState* ui, const char* tool, const char* detail, bool allow_always);
 void ui_show_info(UiState* ui);
 void ui_back_to_status(UiState* ui);
-void ui_set_muted(UiState* ui, bool muted);
+void ui_set_sound_level(UiState* ui, uint8_t level);
 void ui_set_rssi(UiState* ui, int rssi);
 void ui_run(UiState* ui);
 void ui_stop(UiState* ui);

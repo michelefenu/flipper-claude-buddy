@@ -23,6 +23,14 @@ typedef enum {
     BleModeDesktop = 1,
 } BleMode;
 
+/* Cycled by long-press Down. */
+typedef enum {
+    SoundLevelAll = 0,
+    /* Only permission prompts and host notifications sent with vibro:true. */
+    SoundLevelImportant = 1,
+    SoundLevelOff = 2,
+} SoundLevel;
+
 #define APP_SETTINGS_NAME_MAX    32
 #define APP_SETTINGS_DEVNAME_MAX 18  /* matches FURI_HAL_VERSION_DEVICE_NAME_LENGTH */
 
@@ -39,6 +47,9 @@ void app_settings_set_owner_name(const char* name);
  * use the default "Claude Flipper". */
 bool app_settings_get_device_name(char* out, int out_size);
 void app_settings_set_device_name(const char* name);
+
+SoundLevel app_settings_get_sound_level(void);
+void app_settings_set_sound_level(SoundLevel level);
 
 #ifdef __cplusplus
 }

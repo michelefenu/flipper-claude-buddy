@@ -480,10 +480,10 @@ static void status_draw(Canvas* canvas, void* model) {
         canvas_draw_str(canvas, ox + 8, 8, "Mic");
     }
 
-    // Mute indicator — small 'M' at top-left when sound is off
-    if(m->muted) {
+    // Sound level at top-left: '!' = important only, 'M' = muted
+    if(m->sound_level != SoundLevelAll) {
         canvas_set_font(canvas, FontKeyboard);
-        canvas_draw_str(canvas, 1, 8, "M");
+        canvas_draw_str(canvas, 1, 8, m->sound_level == SoundLevelOff ? "M" : "!");
     }
 
     // Transport mode — only when connected
@@ -666,7 +666,7 @@ static bool status_input(InputEvent* event, void* context) {
         return true;
     }
     if(event->key == InputKeyDown && event->type == InputTypeLong) {
-        if(ui->event_callback) ui->event_callback(UiEventToggleMute, NULL, ui->event_context);
+        if(ui->event_callback) ui->event_callback(UiEventCycleSound, NULL, ui->event_context);
         return true;
     }
     if(event->key == InputKeyRight && event->type == InputTypeShort) {
@@ -850,7 +850,7 @@ typedef struct {
 static const HelpEntry help_entries_bridge[] = {
     {HelpBtnText,  "Tap",       "Hold"},
     {HelpBtnUp,    "History",   "Voice"},
-    {HelpBtnDown,  "Down",      "Mute"},
+    {HelpBtnDown,  "Down",      "Sound"},
     {HelpBtnLeft,  "Esc",       "/clear"},
     {HelpBtnRight, "Cmd menu",  "Menu"},
     {HelpBtnOk,    "Enter",     "Tab"},
@@ -1687,10 +1687,10 @@ void ui_back_to_status(UiState* ui) {
     view_dispatcher_switch_to_view(ui->view_dispatcher, ViewIdStatus);
 }
 
-void ui_set_muted(UiState* ui, bool muted) {
+void ui_set_sound_level(UiState* ui, uint8_t level) {
     if(!ui) return;
     StatusModel* m = view_get_model(ui->status_view);
-    m->muted = muted;
+    m->sound_level = level;
     view_commit_model(ui->status_view, true);
 }
 

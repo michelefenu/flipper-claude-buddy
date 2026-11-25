@@ -119,6 +119,8 @@ JSON lines (`\n`-terminated) over serial (USB or BLE):
 
 Adding a button event touches all three layers: a builder in `protocol.c/.h`, the sender in `ui.c`/`claude_buddy.c`, and a `msg_type` branch in `Daemon` (`daemon.py`) that calls the input backend. New key names must be added to `_key_code` in `input.py`: on macOS an unknown name silently falls back to Return (key code 36).
 
+The `vibro` field of `notify` doesn't drive the vibration motor (each sound's sequence does). The Flipper reads it as "important": at the "important only" sound level (hold Down cycles all → important → off, persisted in `settings.bin`), only `vibro:true` notifications and permission prompts make noise. Hooks for things that need the user's attention must send `vibro:true`; per-tool and subagent chatter sends `false`.
+
 The Flipper sends `hello` on the first received `ping` (from the GUI thread), not at BLE connect time. This is because the host's CCCD write (enabling notifications) hasn't happened yet when the connection status callback fires. `hello_sent` is reset on every transport change and reconnect.
 
 Desktop mode uses Anthropic's Hardware Buddy wire protocol instead (`nus_protocol.c`). It is unrelated to the JSON protocol above.

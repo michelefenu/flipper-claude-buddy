@@ -18,7 +18,7 @@ echo '{"action":"notify","sound":"SOUND","vibro":VIBRO,"text":"TITLE","subtext":
 ```
 
 - `SOUND` — one of the sound names below
-- `VIBRO` — `true` to vibrate, `false` for silent
+- `VIBRO` — `true` marks the notification as important: it still plays when the Flipper's sound level (hold Down) is "important only". `false` plays only at "all"
 - `TITLE` / `SUBTITLE` — up to 20 characters each; omit or leave empty if not needed
 
 ## Sound reference

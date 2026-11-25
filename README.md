@@ -42,7 +42,7 @@ Once paired, Claude Desktop auto-reconnects whenever both sides are online.
 | OK | Submit Enter (⏎) |
 | OK (hold) | Tab (accept Claude Code's prompt suggestion) |
 | DOWN | Send Down arrow (↓) |
-| DOWN (hold) | Toggle mute |
+| DOWN (hold) | Cycle sound: all → important only (`!`) → off (`M`) |
 | BACK | Send Backspace (⌫) |
 | BACK (hold) | Exit |
 

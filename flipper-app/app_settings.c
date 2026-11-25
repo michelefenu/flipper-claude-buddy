@@ -23,6 +23,10 @@ typedef struct __attribute__((packed)) {
     /* NUL-terminated within the allotted buffer; unused tail bytes zero. */
     char owner_name[APP_SETTINGS_NAME_MAX];
     char device_name[APP_SETTINGS_DEVNAME_MAX];
+    /* Appended without a version bump: a shorter V2 file from an older
+     * build leaves it at the zero_out default (SoundLevelAll), and older
+     * builds just read the bytes they know. */
+    uint8_t sound_level;
 } AppSettingsFile;
 
 static void zero_out(AppSettingsFile* s) {
@@ -52,6 +56,7 @@ static void read_all(AppSettingsFile* out) {
                 if(out->ble_mode > BleModeDesktop) out->ble_mode = BleModeBridge;
                 out->owner_name[APP_SETTINGS_NAME_MAX - 1] = '\0';
                 out->device_name[APP_SETTINGS_DEVNAME_MAX - 1] = '\0';
+                if(out->sound_level > SoundLevelOff) out->sound_level = SoundLevelAll;
             }
         }
     }
@@ -125,6 +130,20 @@ void app_settings_set_device_name(const char* name) {
     read_all(&s);
     memset(s.device_name, 0, sizeof(s.device_name));
     if(name) strlcpy(s.device_name, name, sizeof(s.device_name));
+    s.version = SETTINGS_VERSION;
+    write_all(&s);
+}
+
+SoundLevel app_settings_get_sound_level(void) {
+    AppSettingsFile s;
+    read_all(&s);
+    return (SoundLevel)s.sound_level;
+}
+
+void app_settings_set_sound_level(SoundLevel level) {
+    AppSettingsFile s;
+    read_all(&s);
+    s.sound_level = (uint8_t)level;
     s.version = SETTINGS_VERSION;
     write_all(&s);
 }

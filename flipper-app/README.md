@@ -43,7 +43,7 @@ Both modes give you the same LED / sound / vibration feedback for working, succe
 | OK | Submit Enter (⏎) |
 | OK (hold) | Tab (accept Claude Code's prompt suggestion) |
 | DOWN | Send Down arrow (↓) |
-| DOWN (hold) | Toggle mute |
+| DOWN (hold) | Cycle sound: all → important only (`!`) → off (`M`) |
 | BACK | Send Backspace (⌫) |
 | BACK (hold) | Exit app |
 
@@ -72,7 +72,7 @@ Once paired, Claude Desktop auto-reconnects whenever both sides are on.
 | RIGHT / RIGHT (hold) | Open info menu |
 | OK | Allow a permission prompt |
 | LEFT | Deny a permission prompt |
-| DOWN (hold) | Toggle mute |
+| DOWN (hold) | Cycle sound: all → important only (`!`) → off (`M`) |
 | BACK (hold) | Exit app |
 
 The in-app **HELP** page reflects whichever mode is active.
