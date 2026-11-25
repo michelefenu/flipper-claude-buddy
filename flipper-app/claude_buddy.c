@@ -480,6 +480,7 @@ static void process_message(App* app, ProtocolMessage* msg) {
 
     case MsgTypeState:
         ui_set_claude_connected(app->ui, msg->claude_connected);
+        ui_set_session_name(app->ui, msg->text);
         break;
 
     case MsgTypeAnthropicHB: {

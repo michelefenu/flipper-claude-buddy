@@ -27,10 +27,10 @@ def sound_for_tool(tool_name: str) -> str | None:
     return None  # unknown tools: silent
 
 
-def send_to_flipper(sound: str, text: str = "", subtext: str = "") -> None:
+def send_to_flipper(sound: str, text: str = "", subtext: str = "", session_id: str = "") -> None:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(SOCKET_PATH)
-    msg = json.dumps({"action": "notify", "sound": sound, "vibro": False, "text": text, "subtext": subtext})
+    msg = json.dumps({"action": "notify", "session_id": session_id, "sound": sound, "vibro": False, "text": text, "subtext": subtext})
     s.sendall(msg.encode())
     s.shutdown(socket.SHUT_WR)
     s.recv(4096)
@@ -96,7 +96,7 @@ def main():
 
     detail = tool_detail(tool_name, hook_input)
     try:
-        send_to_flipper(sound, tool_name, detail)
+        send_to_flipper(sound, tool_name, detail, session_id=hook_input.get("session_id", ""))
     except Exception:
         pass
 

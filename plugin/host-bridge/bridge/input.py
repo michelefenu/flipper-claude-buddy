@@ -65,6 +65,7 @@ def _key_code(key: str) -> int:
         "escape":    53,
         "down":     125,
         "up":       126,
+        "left":     123,
         "space":     49,
         "tab":       48,
         "backspace": 51,

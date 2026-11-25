@@ -9,10 +9,10 @@ import sys
 SOCKET_PATH = "/tmp/claude-flipper-bridge.sock"
 
 
-def send_display(text: str, subtext: str = "") -> None:
+def send_display(text: str, subtext: str = "", session_id: str = "") -> None:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(SOCKET_PATH)
-    msg = json.dumps({"action": "display", "text": text, "subtext": subtext})
+    msg = json.dumps({"action": "display", "session_id": session_id, "text": text, "subtext": subtext})
     s.sendall(msg.encode())
     s.shutdown(socket.SHUT_WR)
     s.recv(4096)
@@ -31,7 +31,7 @@ def main():
     agent_type = hook_input.get("agent_type", "Agent")
 
     try:
-        send_display(f"{agent_type} agent", "started")
+        send_display(f"{agent_type} agent", "started", session_id=hook_input.get("session_id", ""))
     except Exception:
         pass
 

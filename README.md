@@ -43,8 +43,10 @@ Once paired, Claude Desktop auto-reconnects whenever both sides are online.
 | OK (hold) | Tab (accept Claude Code's prompt suggestion) |
 | DOWN | Send Down arrow (↓) |
 | DOWN (hold) | Cycle sound: all → important only (`!`) → off (`M`) |
-| BACK | Send Backspace (⌫) |
+| BACK | Send Backspace (⌫); in agent view, Left (←) to go back to the agent list |
 | BACK (hold) | Exit |
+
+In agent view (`claude agents`), the header shows the name of the background session that sent the last event, in place of the ▲ Mic hint.
 
 ## Setup
 

@@ -99,6 +99,8 @@ bool protocol_parse(const char* json_line, ProtocolMessage* msg) {
         break;
     case MsgTypeState:
         json_get_bool(d_start, "claude", &msg->claude_connected);
+        // Agent-view session name for the header; missing (older bridge) stays "".
+        json_get_string(d_start, "name", msg->text, sizeof(msg->text));
         break;
     case MsgTypePerm:
         json_get_string(d_start, "tool", msg->text, sizeof(msg->text));

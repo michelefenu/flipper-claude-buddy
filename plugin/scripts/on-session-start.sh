@@ -10,6 +10,7 @@ LOG="/tmp/claude-flipper-bridge.log"
 
 # Read hook payload from stdin and extract source for display subtext.
 PAYLOAD=$(cat)
+SESSION_ID=$(printf '%s' "$PAYLOAD" | sed -n 's/.*"session_id" *: *"\([^"]*\)".*/\1/p' | head -1)
 SUBTEXT=$(echo "$PAYLOAD" | python3 -c '
 import json, sys
 SOURCES = {
@@ -137,7 +138,7 @@ COUNT=$(cat "$REFCOUNT_FILE" 2>/dev/null || echo 0)
 echo $((COUNT + 1)) > "$REFCOUNT_FILE"
 
 PROJECT_DIR="$(pwd)"
-echo "{\"action\":\"claude_connect\",\"project_dir\":\"$PROJECT_DIR\"}" \
+echo "{\"action\":\"claude_connect\",\"session_id\":\"$SESSION_ID\",\"project_dir\":\"$PROJECT_DIR\"}" \
     | nc -U "$SOCKET" 2>/dev/null || true
 
 # Match the "Claude Code / Connected" notification shown when the Flipper

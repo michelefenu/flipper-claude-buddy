@@ -13,10 +13,10 @@ NOTIFY_MAP = {
 }
 
 
-def send_to_flipper(sound: str, text: str, subtext: str = "") -> None:
+def send_to_flipper(sound: str, text: str, subtext: str = "", session_id: str = "") -> None:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(SOCKET_PATH)
-    msg = json.dumps({"action": "notify", "sound": sound, "vibro": True, "text": text, "subtext": subtext})
+    msg = json.dumps({"action": "notify", "session_id": session_id, "sound": sound, "vibro": True, "text": text, "subtext": subtext})
     s.sendall(msg.encode())
     s.shutdown(socket.SHUT_WR)
     s.recv(4096)
@@ -39,7 +39,7 @@ def main():
 
     sound, text, subtext = entry
     try:
-        send_to_flipper(sound, text, subtext)
+        send_to_flipper(sound, text, subtext, session_id=hook_input.get("session_id", ""))
     except Exception:
         pass
 

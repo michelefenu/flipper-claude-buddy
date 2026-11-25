@@ -4,6 +4,8 @@ import asyncio
 import json
 import logging
 import os
+import shutil
+import time
 from collections import OrderedDict
 from pathlib import Path
 from . import config, protocol
@@ -29,6 +31,10 @@ class Daemon:
         self._cmd_map: dict[str, str] = {}  # truncated -> full command
         self._space_repeat_task: asyncio.Task | None = None
         self._session_targets: OrderedDict[str, dict[str, str]] = OrderedDict()
+        # Agent-view session behind the last hook event ("" = none or a plain terminal session)
+        self._session_name = ""
+        self._agents: dict[str, dict] = {}  # sessionId -> `claude agents --json` entry
+        self._agents_at = 0.0
 
         self.serial.on_message(self._handle_flipper_msg)
         self.serial.on_connect(self._send_initial_state)
@@ -60,7 +66,7 @@ class Daemon:
             )
             # Restore Claude state if already connected
             if self._claude_connected:
-                await self.serial.send(protocol.state_msg(True))
+                await self.serial.send(protocol.state_msg(True, self._session_name))
             # Send command menu
             commands = self._load_commands()
             if commands:
@@ -142,7 +148,8 @@ class Daemon:
                 await self.serial.send(protocol.status_msg("", ""))
 
         elif msg_type == "backspace":
-            await self._send_keystroke("backspace")
+            # Agent view: Back goes back to the agent list (← on an empty prompt detaches).
+            await self._send_keystroke("left" if self._session_name else "backspace")
 
         elif msg_type == "space_down":
             await self._start_space_repeat()
@@ -175,10 +182,27 @@ class Daemon:
                     log.debug("Sending menu (%d commands, %d bytes)", len(commands), len(menu_bytes))
                     await self.serial.send(menu_bytes)
                 if self._claude_connected:
-                    await self.serial.send(protocol.state_msg(True))
+                    await self.serial.send(protocol.state_msg(True, self._session_name))
+
+    async def _track_session(self, session_id: str) -> None:
+        """Show the agent-view session behind this hook event in the Flipper header."""
+        if not session_id:
+            return
+        age = time.monotonic() - self._agents_at
+        # Refresh every 5s for renames, and sooner for a session not seen yet.
+        if age > 5 or (session_id not in self._agents and age > 1):
+            self._agents = await _list_agents()
+            self._agents_at = time.monotonic()
+        entry = self._agents.get(session_id) or {}
+        name = (entry.get("name") or "")[:31] if entry.get("kind") == "background" else ""
+        if name != self._session_name:
+            self._session_name = name
+            log.info("Session name: %r", name)
+            await self.serial.send(protocol.state_msg(self._claude_connected, name))
 
     async def _handle_ipc_action(self, request: dict) -> dict:
         action = request.get("action", "")
+        await self._track_session(request.get("session_id", ""))
 
         if action == "notify":
             if self._perm_future and not self._perm_future.done():
@@ -204,7 +228,7 @@ class Daemon:
                 config.PROJECT_DIR = project_dir
                 log.info("Updated PROJECT_DIR to %s", project_dir)
             self._claude_connected = True
-            await self.serial.send(protocol.state_msg(True))
+            await self.serial.send(protocol.state_msg(True, self._session_name))
             # Refresh commands for the (possibly new) project
             commands = self._load_commands()
             if commands and self.serial.connected:
@@ -214,6 +238,7 @@ class Daemon:
         elif action == "claude_disconnect":
             await self._stop_space_repeat()
             self._claude_connected = False
+            self._session_name = ""
             await self.serial.send(protocol.state_msg(False))
             return {"status": "ok"}
 
@@ -657,3 +682,22 @@ def _save_bt_name_to_plugin_config(bt_name: str) -> None:
         log.info("Saved bluetoothName=%r to plugin config", bt_name)
     except Exception as e:
         log.warning("Failed to save bluetoothName to plugin config: %s", e)
+
+
+async def _list_agents() -> dict[str, dict]:
+    """sessionId -> entry of `claude agents --json`, the documented way to read session names."""
+    claude = shutil.which("claude")
+    if not claude:
+        return {}
+    proc = await asyncio.create_subprocess_exec(
+        claude, "agents", "--json",
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
+    )
+    try:
+        out, _ = await asyncio.wait_for(proc.communicate(), 5)
+        return {s["sessionId"]: s for s in json.loads(out) if s.get("sessionId")}
+    except Exception as e:
+        if proc.returncode is None:
+            proc.kill()
+        log.debug("claude agents --json failed: %s", e)
+        return {}

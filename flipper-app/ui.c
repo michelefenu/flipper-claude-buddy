@@ -469,6 +469,15 @@ static void status_draw(Canvas* canvas, void* model) {
                 canvas_draw_circle(canvas, ox + 2, 5, 2);
             canvas_draw_str(canvas, ox + 8, 8, "REC");
         }
+    } else if(!desktop && m->session_name[0]) {
+        // Agent-view session name, kept clear of the sound level (x < 8) and USB / bars (x > 100)
+        FuriString* name = furi_string_alloc_set_str(m->session_name);
+        elements_string_fit_width(canvas, name, 92);
+        int w = (int)canvas_string_width(canvas, furi_string_get_cstr(name));
+        int x = 64 - w / 2;
+        if(x + w > 100) x = 100 - w;
+        canvas_draw_str(canvas, x, 8, furi_string_get_cstr(name));
+        furi_string_free(name);
     } else if(!desktop) {
         // Centered ▲ Mic hint (Bridge mode only)
         int tw = (int)canvas_string_width(canvas, "Mic");
@@ -854,7 +863,7 @@ static const HelpEntry help_entries_bridge[] = {
     {HelpBtnLeft,  "Esc",       "/clear"},
     {HelpBtnRight, "Cmd menu",  "Menu"},
     {HelpBtnOk,    "Enter",     "Tab"},
-    {HelpBtnBack,  "Backspace", "Exit app"},
+    {HelpBtnBack,  "Bksp/List", "Exit app"}, // List: back to the agent list in agent view
     {HelpBtnText,  "",                          NULL},
     {HelpBtnText,  "Install plugin:",           NULL},
     {HelpBtnText,  "```",                       NULL},
@@ -1595,6 +1604,13 @@ void ui_set_claude_connected(UiState* ui, bool connected) {
     if(!connected) {
         m->rssi_bars = 0; // 清零信号格
     }
+    view_commit_model(ui->status_view, true);
+}
+
+void ui_set_session_name(UiState* ui, const char* name) {
+    if(!ui) return;
+    StatusModel* m = view_get_model(ui->status_view);
+    strlcpy(m->session_name, name ? name : "", sizeof(m->session_name));
     view_commit_model(ui->status_view, true);
 }
 

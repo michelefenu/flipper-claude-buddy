@@ -87,6 +87,9 @@ Claude Code hook scripts (plugin/scripts/)
 - Sessions are refcounted in `/tmp/claude-flipper-bridge.refcount`. `on-session-end.sh` stops the daemon when the count reaches 0, except when the reason is `clear` or `resume`. In those cases the same Claude process immediately starts a new session, so killing the bridge would race its SessionStart: the start hook sees the dying bridge's socket and skips the restart, which leaves the Flipper stuck on "Session End".
 - `session-target.py` registers the current terminal app/tab (`register_target`) so keystrokes go to the right window when several sessions are open.
 
+### Agent view (background sessions)
+Every hook puts the `session_id` of its stdin payload in its socket message (`on-session-end.sh` doesn't: `claude_disconnect` clears the name). `Daemon._track_session` looks the id up in `claude agents --json` (cached, refreshed every 5s; hooks get no session name, and `~/.claude/jobs/*/state.json` is not a stable interface). For a `kind: "background"` session it sends the name in `state` (`"name"`), and the Flipper shows it in the header in place of the ▲ Mic hint. While a name is set, the `backspace` message (Back tap) sends Left instead of Backspace: Left on an empty prompt detaches to the agent list. `Ctrl+Z` also detaches, but in a plain terminal session it suspends Claude, so it is not used.
+
 ### Permission round-trip
 `on-permission-request.py` sends `permission_request` over the socket and **blocks** while the bridge sends `perm` to the Flipper and waits up to 60s for `perm_resp`. On `no_flipper` / `timeout` / `busy` / `ask`, the hook falls back to Claude Code's normal permission dialog. Only one permission request can be in flight at a time.
 

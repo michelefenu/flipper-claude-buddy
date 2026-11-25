@@ -73,6 +73,7 @@ typedef struct {
     uint8_t anim_frame;     // animation counter (incremented by timer)
     uint8_t transport_mode; // 0 = USB, 1 = BT (shown in header)
     uint8_t rssi_bars;      // BLE signal bars 0–4 (only used when transport_mode == 1)
+    char session_name[32];  // agent-view session; replaces the Mic hint in the header ("" = none)
 } StatusModel;
 
 #define MAX_MENU_ITEMS 256
@@ -131,6 +132,7 @@ void ui_show_status2(UiState* ui, const char* text, const char* subtext, bool co
 void ui_show_menu(UiState* ui);
 void ui_show_listening(UiState* ui);
 void ui_set_claude_connected(UiState* ui, bool connected);
+void ui_set_session_name(UiState* ui, const char* name);
 void ui_set_pose(UiState* ui, uint8_t pose);
 void ui_set_transport_mode(UiState* ui, bool is_bt);
 void ui_update_menu(UiState* ui, const char* pipe_delimited);

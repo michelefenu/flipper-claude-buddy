@@ -9,10 +9,10 @@ import sys
 SOCKET_PATH = "/tmp/claude-flipper-bridge.sock"
 
 
-def send_to_flipper(sound: str, text: str, subtext: str = "") -> None:
+def send_to_flipper(sound: str, text: str, subtext: str = "", session_id: str = "") -> None:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(SOCKET_PATH)
-    msg = json.dumps({"action": "notify", "sound": sound, "vibro": False, "text": text, "subtext": subtext})
+    msg = json.dumps({"action": "notify", "session_id": session_id, "sound": sound, "vibro": False, "text": text, "subtext": subtext})
     s.sendall(msg.encode())
     s.shutdown(socket.SHUT_WR)
     s.recv(4096)
@@ -34,7 +34,7 @@ def main():
 
     try:
         # alert: single E5 blip + cyan flash, does NOT clear the working indicator
-        send_to_flipper("alert", f"{agent_type} agent", subtext)
+        send_to_flipper("alert", f"{agent_type} agent", subtext, session_id=hook_input.get("session_id", ""))
     except Exception:
         pass
 

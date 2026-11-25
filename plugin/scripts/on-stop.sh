@@ -20,6 +20,7 @@ fi
 
 # Read hook payload from stdin
 PAYLOAD=$(cat)
+SESSION_ID=$(printf '%s' "$PAYLOAD" | sed -n 's/.*"session_id" *: *"\([^"]*\)".*/\1/p' | head -1)
 
 # Check if interrupted
 INTERRUPTED=$(echo "$PAYLOAD" | python3 -c "
@@ -48,10 +49,10 @@ except Exception:
 fi
 
 if [ "$INTERRUPTED" = "true" ]; then
-    echo "{\"action\":\"notify\",\"sound\":\"interrupt\",\"vibro\":true,\"text\":\"Interrupted\",\"subtext\":\"$SUBTEXT\"}" \
+    echo "{\"action\":\"notify\",\"session_id\":\"$SESSION_ID\",\"sound\":\"interrupt\",\"vibro\":true,\"text\":\"Interrupted\",\"subtext\":\"$SUBTEXT\"}" \
         | nc -U "$SOCKET" 2>/dev/null &
 else
-    echo "{\"action\":\"notify\",\"sound\":\"success\",\"vibro\":true,\"text\":\"Turn complete\",\"subtext\":\"$SUBTEXT\"}" \
+    echo "{\"action\":\"notify\",\"session_id\":\"$SESSION_ID\",\"sound\":\"success\",\"vibro\":true,\"text\":\"Turn complete\",\"subtext\":\"$SUBTEXT\"}" \
         | nc -U "$SOCKET" 2>/dev/null &
 fi
 

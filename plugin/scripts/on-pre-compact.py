@@ -9,10 +9,10 @@ import sys
 SOCKET_PATH = "/tmp/claude-flipper-bridge.sock"
 
 
-def send_to_flipper(sound: str, vibro: bool, text: str, subtext: str = "") -> None:
+def send_to_flipper(sound: str, vibro: bool, text: str, subtext: str = "", session_id: str = "") -> None:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(SOCKET_PATH)
-    msg = json.dumps({"action": "notify", "sound": sound, "vibro": vibro, "text": text, "subtext": subtext})
+    msg = json.dumps({"action": "notify", "session_id": session_id, "sound": sound, "vibro": vibro, "text": text, "subtext": subtext})
     s.sendall(msg.encode())
     s.shutdown(socket.SHUT_WR)
     s.recv(4096)
@@ -24,7 +24,12 @@ def main():
         sys.exit(0)
 
     try:
-        send_to_flipper("led_compact", False, "Compacting...")
+        session_id = json.load(sys.stdin).get("session_id", "")
+    except Exception:
+        session_id = ""
+
+    try:
+        send_to_flipper("led_compact", False, "Compacting...", session_id=session_id)
     except Exception:
         pass
 

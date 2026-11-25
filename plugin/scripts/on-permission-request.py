@@ -10,11 +10,11 @@ SOCKET_PATH = "/tmp/claude-flipper-bridge.sock"
 TIMEOUT = 60  # seconds to wait for user decision on Flipper
 
 
-def send_to_bridge(tool: str, detail: str) -> dict:
+def send_to_bridge(tool: str, detail: str, session_id: str = "") -> dict:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.settimeout(TIMEOUT)
     s.connect(SOCKET_PATH)
-    msg = json.dumps({"action": "permission_request", "tool": tool, "detail": detail})
+    msg = json.dumps({"action": "permission_request", "session_id": session_id, "tool": tool, "detail": detail})
     s.sendall(msg.encode())
     s.shutdown(socket.SHUT_WR)
     resp = s.recv(4096)
@@ -76,7 +76,8 @@ def main():
             s.settimeout(5)
             s.connect(SOCKET_PATH)
             s.sendall(json.dumps({
-                "action": "notify", "sound": "alert", "vibro": True, "text": text,
+                "action": "notify", "session_id": hook_input.get("session_id", ""),
+                "sound": "alert", "vibro": True, "text": text,
                 "subtext": questions[0].get("question", "")[:63],
             }).encode())
             s.shutdown(socket.SHUT_WR)
@@ -99,7 +100,7 @@ def main():
     detail = extract_detail(tool_name_raw, tool_input)
 
     try:
-        result = send_to_bridge(tool_name, detail)
+        result = send_to_bridge(tool_name, detail, session_id=hook_input.get("session_id", ""))
     except Exception:
         # Bridge error — fall back to normal permission dialog
         sys.exit(1)
